@@ -1,0 +1,18 @@
+package com.lms.auth.enums;
+
+public enum Permission {
+    CREATE_CUSTOMER,
+    UPDATE_CUSTOMER,
+    VIEW_CUSTOMER,
+    DELETE_CUSTOMER,
+
+    ISSUE_LOAN,
+    COLLECT_PAYMENT,
+    VIEW_LOAN,
+    REMOVE_LOAN,
+    VIEW_PAYMENT,
+    MANAGE_ROUTE,
+    MANAGE_LOAN_PACKAGE,
+    MANAGE_INVESTOR,
+    USER_MANAGEMENT
+}

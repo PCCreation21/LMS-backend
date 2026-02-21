@@ -1,0 +1,40 @@
+package com.lms.auth.controller;
+
+import com.lms.auth.dto.*;
+import com.lms.auth.service.AuthService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse> changePassword(
+            @RequestHeader("X-User-Name") String username,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(username, request);
+        return ResponseEntity.ok(new ApiResponse(true, "Password changed successfully"));
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<ApiResponse> validateToken() {
+        return ResponseEntity.ok(new ApiResponse(true, "Token is valid"));
+    }
+}
