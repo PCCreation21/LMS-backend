@@ -10,6 +10,8 @@ public enum Permission {
     COLLECT_PAYMENT,
     VIEW_LOAN,
     REMOVE_LOAN,
+    UPDATE_LOAN_STATE,
+
     VIEW_PAYMENT,
     MANAGE_ROUTE,
     MANAGE_LOAN_PACKAGE,
