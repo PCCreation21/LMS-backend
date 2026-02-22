@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,12 +20,14 @@ public class CustomerController {
     @Autowired
     private final CustomerService customerService;
 
+    @PreAuthorize("hasAuthority('CREATE_CUSTOMER')")
     @PostMapping
     public ResponseEntity<CustomerResponse> createCustomer(
             @Valid @RequestBody CreateCustomerRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(customerService.createCustomer(request));
     }
 
+    @PreAuthorize("hasAuthority('VIEW_CUSTOMER')")
     @GetMapping
     public ResponseEntity<List<CustomerResponse>> getAllCustomers(
             @RequestParam(required = false) String search,
@@ -48,6 +51,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.getCustomerByNic(nic));
     }
 
+    @PreAuthorize("hasAuthority('UPDATE_CUSTOMER')")
     @PutMapping("/{id}")
     public ResponseEntity<CustomerResponse> updateCustomer(
             @PathVariable Long id,
@@ -55,6 +59,7 @@ public class CustomerController {
         return ResponseEntity.ok(customerService.updateCustomer(id, request));
     }
 
+    @PreAuthorize("hasAuthority('DELETE_CUSTOMER')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse> deleteCustomer(@PathVariable Long id) {
         customerService.deleteCustomer(id);
