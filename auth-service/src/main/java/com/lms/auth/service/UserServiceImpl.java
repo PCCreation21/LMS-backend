@@ -19,24 +19,49 @@ public class UserServiceImpl implements UserService{
     @Autowired
     private UserRepository userRepository;
 
+    @Override
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::mapToUserResponse)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public UserResponse getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
         return mapToUserResponse(user);
     }
 
+    @Override
     public UserResponse getUserByNic(String nic) {
         User user = userRepository.findByNic(nic)
                 .orElseThrow(() -> new RuntimeException("User not found with NIC: " + nic));
         return mapToUserResponse(user);
     }
 
+    @Override
+    public UserResponse getUserBYName(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(()->new RuntimeException("User not found with username: " + username));
+        return mapToUserResponse(user);
+    }
+
+    @Override
+    public List<UserResponse> searchUsersByName(String search) {
+        return userRepository.searchUsersByName(search).stream()
+                .map(this::mapToUserResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserResponse> searchUsersByNic(String search) {
+        return userRepository.searchUsersByNic(search).stream()
+                .map(this::mapToUserResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
@@ -59,6 +84,7 @@ public class UserServiceImpl implements UserService{
         return mapToUserResponse(user);
     }
 
+    @Override
     @Transactional
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
