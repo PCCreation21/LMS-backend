@@ -9,6 +9,9 @@ public interface UserService {
     List<UserResponse> getAllUsers();
     UserResponse getUserById(Long id);
     UserResponse getUserByNic(String nic);
+    UserResponse getUserBYName(String username);
+    List<UserResponse> searchUsersByName(String search);
+    List<UserResponse> searchUsersByNic(String search);
     UserResponse updateUser(Long id, UpdateUserRequest request);
     void deleteUser(Long id);
 }
