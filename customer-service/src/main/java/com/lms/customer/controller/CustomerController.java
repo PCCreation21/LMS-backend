@@ -29,14 +29,42 @@ public class CustomerController {
 
     @PreAuthorize("hasAuthority('VIEW_CUSTOMER')")
     @GetMapping
-    public ResponseEntity<List<CustomerResponse>> getAllCustomers(
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String routeCode) {
+    public ResponseEntity<List<CustomerResponse>> getAllCustomers(){
+        return ResponseEntity.ok(customerService.getAllCustomers());
+    }
+
+    @GetMapping("/username")
+    public ResponseEntity<List<CustomerResponse>> searchCustomersByName(
+            @RequestParam(required = false) String search) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(customerService.searchCustomers(search));
+            return ResponseEntity.ok(customerService.searchCustomersByName(search));
         }
-        if (routeCode != null && !routeCode.isEmpty()) {
-            return ResponseEntity.ok(customerService.getCustomersByRoute(routeCode));
+        return ResponseEntity.ok(customerService.getAllCustomers());
+    }
+
+    @GetMapping("/nic")
+    public ResponseEntity<List<CustomerResponse>> searchCustomersByNic(
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(customerService.searchCustomersByNic(search));
+        }
+        return ResponseEntity.ok(customerService.getAllCustomers());
+    }
+
+    @GetMapping("/route")
+    public ResponseEntity<List<CustomerResponse>> searchCustomersByRouteCode(
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(customerService.searchCustomersByRouteCode(search));
+        }
+        return ResponseEntity.ok(customerService.getAllCustomers());
+    }
+
+    @GetMapping("/status")
+    public ResponseEntity<List<CustomerResponse>> searchCustomersByStatus(
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(customerService.searchCustomersByStatus(search));
         }
         return ResponseEntity.ok(customerService.getAllCustomers());
     }

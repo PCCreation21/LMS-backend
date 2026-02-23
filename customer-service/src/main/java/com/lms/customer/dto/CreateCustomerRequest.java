@@ -1,5 +1,6 @@
 package com.lms.customer.dto;
 
+import com.lms.customer.entity.Customer;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -26,6 +27,8 @@ public class CreateCustomerRequest {
 
     @NotBlank(message = "Gender is required")
     private String gender;
+
+    private Customer.CustomerStatus status;
 
     private String secondaryPhoneNumber;
 }

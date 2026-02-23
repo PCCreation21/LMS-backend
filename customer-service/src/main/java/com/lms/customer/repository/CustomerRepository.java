@@ -15,10 +15,20 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
     boolean existsByPhoneNumber(String phoneNumber);
 
     @Query("SELECT c FROM Customer c WHERE " +
-           "LOWER(c.nic) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(c.customerName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "c.phoneNumber LIKE CONCAT('%', :search, '%')")
-    List<Customer> searchCustomers(String search);
+           "LOWER(c.nic) LIKE LOWER(CONCAT('%', :search, '%'))")
+    List<Customer> searchCustomersByNic(String search);
+
+    @Query("SELECT c FROM Customer c WHERE " +
+            "LOWER(c.customerName) LIKE LOWER(CONCAT('%', :search, '%'))")
+    List<Customer>searchCustomersByName(String search);
+
+    @Query("SELECT c FROM Customer c WHERE " +
+            "LOWER(c.routeCode) LIKE LOWER(CONCAT('%', :search, '%'))")
+    List<Customer>searchCustomersByRouteCode(String search);
+
+    @Query("SELECT c FROM Customer c WHERE " +
+            "LOWER(c.status) LIKE LOWER(CONCAT('%', :search, '%'))")
+    List<Customer>searchCustomersByStatus(String search);
 
     List<Customer> findByRouteCode(String routeCode);
 }
