@@ -40,7 +40,7 @@ public class CustomerServiceImpl implements CustomerService{
                 .gender(request.getGender())
                 .secondaryPhoneNumber(request.getSecondaryPhoneNumber())
                 .createdDate(LocalDate.now())
-                .status(Customer.CustomerStatus.ACTIVE)
+                .status(request.getStatus())
                 .build();
 
         customerRepository.save(customer);
@@ -65,8 +65,22 @@ public class CustomerServiceImpl implements CustomerService{
         return mapToResponse(customer);
     }
 
-    public List<CustomerResponse> searchCustomers(String search) {
-        return customerRepository.searchCustomers(search).stream()
+    public List<CustomerResponse> searchCustomersByNic(String search) {
+        return customerRepository.searchCustomersByNic(search).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CustomerResponse> searchCustomersByRouteCode(String search) {
+        return customerRepository.searchCustomersByRouteCode(search).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CustomerResponse> searchCustomersByStatus(String search) {
+        return customerRepository.searchCustomersByStatus(search).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -106,6 +120,13 @@ public class CustomerServiceImpl implements CustomerService{
             throw new RuntimeException("Customer not found with id: " + id);
         }
         customerRepository.deleteById(id);
+    }
+
+    @Override
+    public List<CustomerResponse> searchCustomersByName(String search) {
+        return customerRepository.searchCustomersByName(search).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     private CustomerResponse mapToResponse(Customer customer) {
