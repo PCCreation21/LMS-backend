@@ -54,16 +54,19 @@ Protected endpoints require:
 
 ### Authentication Service
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/auth/register` | Register new employee | No |
-| POST | `/api/auth/login` | Login, get JWT | No |
-| GET | `/api/users` | List all users | Yes |
-| GET | `/api/users/{id}` | Get user by ID | Yes |
-| GET | `/api/users/nic/{nic}` | Get user by NIC | Yes |
-| PUT | `/api/users/{id}` | Update user permissions | Yes |
-| DELETE | `/api/users/{id}` | Delete user | Yes |
-| POST | `/api/auth/change-password` | Change password | Yes |
+| Method | Endpoint                         | Description             | Auth Required |
+|--------|----------------------------------|-------------------------|---------------|
+| POST | `/api/auth/register`             | Register new employee   | No |
+| POST | `/api/auth/login`                | Login, get JWT          | No |
+| GET | `/api/users`                     | List all users          | Yes |
+| GET | `/api/users/{id}`                | Get user by ID          | Yes |
+| GET | `/api/users/nic/{nic}`           | Get user by NIC         | Yes |
+| GET | `/api/users/username/{username}` | Get user by username    | Yes |
+| GET | `/api/users/username?search=`    | Search user by username | Yes |
+| GET | `/api/users/nic?search=`         | Search user by nic      | Yes |
+| PUT | `/api/users/{id}`                | Update user permissions | Yes |
+| DELETE | `/api/users/{id}`                | Delete user             | Yes |
+| POST | `/api/auth/change-password`      | Change password         | Yes |
 
 **Register Request:**
 ```json
@@ -95,16 +98,18 @@ Protected endpoints require:
 ```
 
 ---
-
+### All other services need auth 
 ### Route Service (`/api/routes`)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/routes` | Create route |
-| GET | `/api/routes` | List all routes |
-| GET | `/api/routes/{routeCode}` | Get route by code |
-| PUT | `/api/routes/{routeCode}` | Update route |
-| DELETE | `/api/routes/{routeCode}` | Delete route |
+| Method | Endpoint                   | Description          |
+|--------|----------------------------|----------------------|
+| POST | `/api/routes`              | Create route         |
+| GET | `/api/routes`              | List all routes      |
+| GET | `/api/routes/{routeCode}`  | Get route by code    |
+| GET | `/api/routes/code?search=` | Search route by code |
+| GET | `/api/routes/name?search=` | Search route by name |
+| PUT | `/api/routes/{routeCode}`  | Update route         |
+| DELETE | `/api/routes/{routeCode}`  | Delete route         |
 
 **Create Route Request:**
 ```json
@@ -119,16 +124,18 @@ Protected endpoints require:
 
 ### Customer Service (`/api/customers`)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/customers` | Create customer |
-| GET | `/api/customers` | List all customers |
-| GET | `/api/customers?search=john` | Search by NIC/name/phone |
-| GET | `/api/customers?routeCode=R001` | Filter by route |
-| GET | `/api/customers/{id}` | Get by ID |
-| GET | `/api/customers/nic/{nic}` | Get by NIC |
-| PUT | `/api/customers/{id}` | Update customer |
-| DELETE | `/api/customers/{id}` | Delete customer |
+| Method | Endpoint                              | Description        |
+|--------|---------------------------------------|--------------------|
+| POST | `/api/customers`                      | Create customer    |
+| GET | `/api/customers`                      | List all customers |
+| GET | `/api/customers/nic?search=`      | Search by NIC      |
+| GET | `/api/customers/username?search=john` | Search by name     |
+| GET | `/api/customers/route?search=R001`    | search by route    |
+| GET | `/api/customers/status?search=ACTIVE` | search by status   |
+| GET | `/api/customers/{id}`                 | Get by ID          |
+| GET | `/api/customers/nic/{nic}`            | Get by NIC         |
+| PUT | `/api/customers/{id}`                 | Update customer    |
+| DELETE | `/api/customers/{id}`                 | Delete customer    |
 
 **Create Customer Request:**
 ```json

@@ -9,6 +9,8 @@ import java.util.List;
 public interface RouteService {
     RouteResponse createRoute(CreateRouteRequest request);
     List<RouteResponse> getAllRoutes();
+    List<RouteResponse> searchRoutesByRouteCode(String search);
+    List<RouteResponse> searchRoutesByRouteName(String search);
     RouteResponse getRouteByCode(String routeCode);
     RouteResponse updateRoute(String routeCode, UpdateRouteRequest request);
     void deleteRoute(String routeCode);

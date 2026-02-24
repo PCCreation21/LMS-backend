@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/routes")
-@PreAuthorize("hasRole('MANAGE_ROUTE')")
+@PreAuthorize("hasAuthority('MANAGE_ROUTE')")
 @RequiredArgsConstructor
 public class RouteController {
 
@@ -38,6 +38,24 @@ public class RouteController {
     @GetMapping("/{routeCode}")
     public ResponseEntity<RouteResponse> getRouteByCode(@PathVariable String routeCode) {
         return ResponseEntity.ok(routeService.getRouteByCode(routeCode));
+    }
+
+    @GetMapping("/code")
+    public ResponseEntity<List<RouteResponse>> searchRoutesByRouteCode(
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(routeService.searchRoutesByRouteCode(search));
+        }
+        return ResponseEntity.ok(routeService.getAllRoutes());
+    }
+
+    @GetMapping("/name")
+    public ResponseEntity<List<RouteResponse>> searchRoutesByRouteName(
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(routeService.searchRoutesByRouteName(search));
+        }
+        return ResponseEntity.ok(routeService.getAllRoutes());
     }
 
     @PutMapping("/{routeCode}")
