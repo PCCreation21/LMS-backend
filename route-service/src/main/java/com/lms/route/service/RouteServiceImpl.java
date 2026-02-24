@@ -20,6 +20,7 @@ public class RouteServiceImpl implements RouteService{
     @Autowired
     private final RouteRepository routeRepository;
 
+    @Override
     @Transactional
     public RouteResponse createRoute(CreateRouteRequest request) {
         if (routeRepository.existsById(request.getRouteCode())) {
@@ -34,18 +35,35 @@ public class RouteServiceImpl implements RouteService{
         return mapToResponse(route);
     }
 
+    @Override
     public List<RouteResponse> getAllRoutes() {
         return routeRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<RouteResponse> searchRoutesByRouteCode(String search) {
+        return routeRepository.searchRoutesByRouteCode(search).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RouteResponse> searchRoutesByRouteName(String search) {
+        return routeRepository.searchRoutesByRouteName(search).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public RouteResponse getRouteByCode(String routeCode) {
         Route route = routeRepository.findById(routeCode)
                 .orElseThrow(() -> new RuntimeException("Route not found: " + routeCode));
         return mapToResponse(route);
     }
 
+    @Override
     @Transactional
     public RouteResponse updateRoute(String routeCode, UpdateRouteRequest request) {
         Route route = routeRepository.findById(routeCode)
@@ -56,6 +74,7 @@ public class RouteServiceImpl implements RouteService{
         return mapToResponse(route);
     }
 
+    @Override
     @Transactional
     public void deleteRoute(String routeCode) {
         if (!routeRepository.existsById(routeCode)) {
