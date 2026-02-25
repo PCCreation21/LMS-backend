@@ -99,17 +99,24 @@ Protected endpoints require:
 
 ---
 ### All other services need auth 
-### Route Service (`/api/routes`)
+### System Service (`/api/routes`) , (`/api/investors`)
 
-| Method | Endpoint                   | Description          |
-|--------|----------------------------|----------------------|
-| POST | `/api/routes`              | Create route         |
-| GET | `/api/routes`              | List all routes      |
-| GET | `/api/routes/{routeCode}`  | Get route by code    |
-| GET | `/api/routes/code?search=` | Search route by code |
-| GET | `/api/routes/name?search=` | Search route by name |
-| PUT | `/api/routes/{routeCode}`  | Update route         |
-| DELETE | `/api/routes/{routeCode}`  | Delete route         |
+| Method | Endpoint                      | Description             |
+|--------|-------------------------------|-------------------------|
+| POST | `/api/routes`                 | Create route            |
+| GET | `/api/routes`                 | List all routes         |
+| GET | `/api/routes/{routeCode}`     | Get route by code       |
+| GET | `/api/routes/code?search=`    | Search route by code    |
+| GET | `/api/routes/name?search=`    | Search route by name    |
+| PUT | `/api/routes/{routeCode}`     | Update route            |
+| DELETE | `/api/routes/{routeCode}`     | Delete route            |
+| POST | `/api/investors`              | Create investor         |
+| GET | `/api/investors`              | List all investor       |
+| GET | `/api/investors/{nic}`        | Get investor by nic     |
+| GET | `/api/investors/nic?search=`  | Search investor by nic  |
+| GET | `/api/investors/name?search=` | Search investor by name |
+| PUT | `/api/investors/{nic}`  | Update investor         |
+| DELETE | `/api/investors/{nic}`  | Delete investor         |
 
 **Create Route Request:**
 ```json
@@ -120,6 +127,16 @@ Protected endpoints require:
 }
 ```
 
+**Create Investor Request:**
+```json
+{
+  "nic": "200012345678",
+  "investorName": "John Doe",
+  "address": "No 45, Galle Road, Colombo, Sri Lanka",
+  "phoneNumber": "+94771234567",
+  "email": "john@example.com"
+}
+```
 ---
 
 ### Customer Service (`/api/customers`)
