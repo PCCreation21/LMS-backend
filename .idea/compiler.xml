@@ -7,14 +7,17 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="api-gateway" />
         <module name="auth-service" />
         <module name="payment-service" />
-        <module name="route-service" />
+        <module name="system-service" />
         <module name="customer-service" />
         <module name="loan-service" />
+        <module name="api-gateway" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="route-service" target="17" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
@@ -24,6 +27,7 @@
       <module name="loan-service" options="-parameters" />
       <module name="payment-service" options="-parameters" />
       <module name="route-service" options="-parameters" />
+      <module name="system-service" options="-parameters" />
     </option>
   </component>
 </project>
