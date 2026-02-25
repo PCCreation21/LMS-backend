@@ -13,10 +13,11 @@ public class AuthResponse {
     private Set<Permission> permissions;
     private String message;
 
-    public AuthResponse(String token, String username, String role, Set<Permission> permissions) {
+    public AuthResponse(String token, String username, String role, Set<Permission> permissions, String message) {
         this.token = token;
         this.username = username;
         this.role = role;
         this.permissions = permissions;
+        this.message = message;
     }
 }

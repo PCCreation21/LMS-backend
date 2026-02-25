@@ -45,13 +45,13 @@ public class LoanController {
     @PutMapping("/{id}/state")
     public ResponseEntity<LoanResponse> updateLoanState(
             @PathVariable Long id,
-            @RequestBody UpdateLoanStateRequest request) {
+            @Valid @RequestBody UpdateLoanStateRequest request) {
         return ResponseEntity.ok(loanService.updateLoanState(id, request));
     }
 
     @PostMapping("/close")
     public ResponseEntity<LoanResponse> closeAndCreateSubLoan(
-            @RequestBody CloseLoanRequest request) {
+            @Valid @RequestBody CloseLoanRequest request) {
         return ResponseEntity.ok(loanService.closeAndCreateSubLoan(request));
     }
 }
