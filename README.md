@@ -39,7 +39,7 @@ cd loan-service && mvn spring-boot:run
 cd payment-service && mvn spring-boot:run
 ```
 
-**Start order recommended:** API Gateway → Auth Service → Route Service → Customer Service → Loan Service → Payment Service
+**Start order recommended:** API Gateway → Auth Service → System Service → Customer Service → Loan Service → Payment Service
 
 ---
 
