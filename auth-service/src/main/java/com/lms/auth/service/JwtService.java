@@ -27,10 +27,9 @@ public class JwtService {
     public String generateToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", user.getRole().name());
-        claims.put("permissions", user.getPermissions() != null ?
-                user.getPermissions().stream()
-                        .map(Enum::name)
-                        .collect(Collectors.joining(",")) : "");
+        claims.put("permissions", user.getPermissions() != null ? user.getPermissions().stream()
+                .map(Enum::name)
+                .collect(Collectors.joining(",")) : "");
         claims.put("userId", user.getId());
 
         return Jwts.builder()

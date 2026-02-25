@@ -25,7 +25,7 @@ public class PaymentController {
     @Autowired
     private final PaymentService paymentService;
 
-    @PreAuthorize("hasRole('COLLECT_PAYMENT')")
+    @PreAuthorize("hasAuthority('COLLECT_PAYMENT')")
     @PostMapping("/collect")
     public ResponseEntity<ReceiptResponse> collectPayment(
             @Valid @RequestBody CollectPaymentRequest request,
