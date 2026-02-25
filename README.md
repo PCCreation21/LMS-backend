@@ -9,7 +9,7 @@
 | Customer Svc   | 8082 | lms_customer_db  | Customer accounts               |
 | Loan Service   | 8083 | lms_loan_db      | Loan packages, loan management  |
 | Payment Svc    | 8084 | lms_payment_db   | Payment collection, receipts    |
-| Route Service  | 8085 | lms_route_db     | Route management                |
+| System Service  | 8085 | lms_system_db     | Route and Investor management                |
 
 ## Setup
 
@@ -26,8 +26,8 @@ cd api-gateway && mvn spring-boot:run
 # Auth Service
 cd auth-service && mvn spring-boot:run
 
-# Route Service
-cd route-service && mvn spring-boot:run
+# System Service
+cd system-service && mvn spring-boot:run
 
 # Customer Service
 cd customer-service && mvn spring-boot:run
