@@ -13,13 +13,13 @@ public class ReceiptResponse {
     private BigDecimal loanAmount;
     private LocalDate startDate;
     private LocalDate endDate;
+    private LocalDate paymentDate;
     private LocalDate lastPaidDate;
     private LocalDate nextPaidDate;
     private BigDecimal rental;
     private BigDecimal totalPaidAmount;
+    private BigDecimal paidAmount;
     private BigDecimal dueToPaid;
     private BigDecimal arrearsAmount;
-    private BigDecimal paidAmount;
-    private LocalDate paymentDate;
     private String collectedBy;
 }

@@ -8,18 +8,22 @@ import com.lms.loan.entity.Loan;
 import com.lms.loan.entity.LoanPackage;
 import com.lms.loan.repository.LoanPackageRepository;
 import com.lms.loan.repository.LoanRepository;
+import com.lms.loan.specification.LoanSpecifications;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -59,13 +63,12 @@ public class LoanServiceImpl implements LoanService{
         // Calculate end date
         LocalDate endDate = request.getStartDate().plusDays(loanPackage.getTimePeriod());
 
-        // Calculate rental amount: (principal * interest/100) / timePeriod * 30 (monthly rental)
-        // Simple: total = principal + principal * interest/100, rental = total / (timePeriod/30)
+        // Simple: total = principal + (principal * interest/100), rental amount= total / (timePeriod/rentalPeriod)
         BigDecimal interestAmount = request.getAmount()
                 .multiply(loanPackage.getInterest())
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal totalRepayable = request.getAmount().add(interestAmount);
-        long numberOfPayments = loanPackage.getTimePeriod() / 30L;
+        int numberOfPayments = loanPackage.getTimePeriod() / loanPackage.getRentalPeriod();
         if (numberOfPayments == 0) numberOfPayments = 1;
         BigDecimal rentalAmount = totalRepayable.divide(
                 BigDecimal.valueOf(numberOfPayments), 2, RoundingMode.HALF_UP);
@@ -73,7 +76,7 @@ public class LoanServiceImpl implements LoanService{
         // Generate unique loan number
         String loanNumber = "LN" + System.currentTimeMillis();
 
-        LocalDate nextPaidDate = request.getStartDate().plusDays(30);
+        LocalDate nextPaidDate = request.getStartDate().plusDays(loanPackage.getRentalPeriod());
 
         Loan loan = Loan.builder()
                 .loanNumber(loanNumber)
@@ -96,22 +99,55 @@ public class LoanServiceImpl implements LoanService{
         return mapToResponse(loan);
     }
 
-    public List<LoanResponse> getAllLoans(String status, String routeCode, String nic) {
-        List<Loan> loans;
+    @Override
+    public List<LoanResponse> getAllLoans(
+            String status,
+            String routeCode,
+            String nic,
+            String loanCode,
+            LocalDate startDateFrom,
+            LocalDate startDateTo,
+            LocalDate endDateFrom,
+            LocalDate endDateTo,
+            LocalDate nextPaidDateFrom,
+            LocalDate nextPaidDateTo,
+            LocalDate lastPaidDateFrom,
+            LocalDate lastPaidDateTo
+    ) {
 
-        if (nic != null && !nic.isEmpty()) {
-            loans = loanRepository.findByCustomerNic(nic);
-        } else if (status != null && routeCode != null) {
-            loans = loanRepository.findByRouteCodeAndStatus(routeCode, Loan.LoanStatus.valueOf(status));
-        } else if (status != null) {
-            loans = loanRepository.findByStatus(Loan.LoanStatus.valueOf(status));
-        } else if (routeCode != null) {
-            loans = loanRepository.findByRouteCode(routeCode);
-        } else {
-            loans = loanRepository.findAll();
+        Specification<Loan> spec = Specification.where(null);
+
+        if (StringUtils.hasText(nic)) {
+            spec = spec.and(LoanSpecifications.customerNicEquals(nic.trim()));
         }
 
-        return loans.stream().map(this::mapToResponse).collect(Collectors.toList());
+        if (StringUtils.hasText(status)) {
+            Loan.LoanStatus parsed;
+            try {
+                parsed = Loan.LoanStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid loan status: " + status);
+            }
+            spec = spec.and(LoanSpecifications.statusEquals(parsed));
+        }
+
+        if (StringUtils.hasText(routeCode)) {
+            spec = spec.and(LoanSpecifications.routeCodeEquals(routeCode.trim()));
+        }
+
+        if (StringUtils.hasText(loanCode)) {
+            spec = spec.and(LoanSpecifications.loanNumberOrPackageCodeLike(loanCode.trim()));
+        }
+
+        spec = spec.and(LoanSpecifications.startDateBetween(startDateFrom, startDateTo));
+        spec = spec.and(LoanSpecifications.endDateBetween(endDateFrom, endDateTo));
+        spec = spec.and(LoanSpecifications.nextPaidDateBetween(nextPaidDateFrom, nextPaidDateTo));
+        spec = spec.and(LoanSpecifications.lastPaidDateBetween(lastPaidDateFrom, lastPaidDateTo));
+
+        return loanRepository.findAll(spec)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     public LoanResponse getLoanByNumber(String loanNumber) {
@@ -144,6 +180,9 @@ public class LoanServiceImpl implements LoanService{
 
         BigDecimal newBalance = loan.getOutstandingBalance().subtract(effectivePaid);
 
+        LoanPackage loanPackage = loanPackageRepository.findById(loan.getPackageCode())
+                .orElseThrow(()->new RuntimeException("Loan package not found: "+loan.getPackageCode()));
+
         if (newBalance.compareTo(BigDecimal.ZERO) <= 0) {
             // Overpaid or exact - carry forward excess
             BigDecimal excess = newBalance.abs();
@@ -157,7 +196,7 @@ public class LoanServiceImpl implements LoanService{
             // Update next payment date
             if (effectivePaid.compareTo(loan.getRentalAmount()) >= 0) {
                 // Full or more than rental paid
-                loan.setNextPaidDate(loan.getNextPaidDate().plusDays(30));
+                loan.setNextPaidDate(loan.getNextPaidDate().plusDays(loanPackage.getRentalPeriod()));
                 loan.setStatus(Loan.LoanStatus.OPEN);
             } else {
                 // Partial payment - may go arrears if overdue
@@ -192,7 +231,7 @@ public class LoanServiceImpl implements LoanService{
                 .multiply(loanPackage.getInterest())
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal totalRepayable = request.getSubLoanAmount().add(interestAmount);
-        long numberOfPayments = Math.max(loanPackage.getTimePeriod() / 30L, 1);
+        int numberOfPayments = loanPackage.getTimePeriod() / loanPackage.getRentalPeriod();
         BigDecimal rentalAmount = totalRepayable.divide(BigDecimal.valueOf(numberOfPayments), 2, RoundingMode.HALF_UP);
 
         Loan subLoan = Loan.builder()
@@ -204,7 +243,7 @@ public class LoanServiceImpl implements LoanService{
                 .rentalAmount(rentalAmount)
                 .startDate(request.getSubLoanStartDate())
                 .endDate(subEndDate)
-                .nextPaidDate(request.getSubLoanStartDate().plusDays(30))
+                .nextPaidDate(request.getSubLoanStartDate().plusDays(loanPackage.getRentalPeriod()))
                 .totalPaidAmount(BigDecimal.ZERO)
                 .outstandingBalance(totalRepayable)
                 .carriedForwardAmount(BigDecimal.ZERO)
@@ -246,9 +285,12 @@ public class LoanServiceImpl implements LoanService{
         response.setOutstandingBalance(loan.getOutstandingBalance());
         response.setCarriedForwardAmount(loan.getCarriedForwardAmount());
 
+        LoanPackage loanPackage = loanPackageRepository.findById(loan.getPackageCode())
+                .orElseThrow(() -> new RuntimeException("Loan package not found: " + loan.getPackageCode()));
+
         // Calculate due to paid (amount that should have been paid by now)
         if (loan.getNextPaidDate() != null && LocalDate.now().isAfter(loan.getNextPaidDate())) {
-            long overduePayments = (LocalDate.now().toEpochDay() - loan.getStartDate().toEpochDay()) / 30
+            long overduePayments = (LocalDate.now().toEpochDay() - loan.getStartDate().toEpochDay()) / loanPackage.getRentalPeriod()
                     - (loan.getTotalPaidAmount().divide(loan.getRentalAmount(), 0, RoundingMode.DOWN)).longValue();
             BigDecimal dueToPaid = loan.getRentalAmount().multiply(BigDecimal.valueOf(Math.max(overduePayments, 0)));
             response.setDueToPaid(dueToPaid);

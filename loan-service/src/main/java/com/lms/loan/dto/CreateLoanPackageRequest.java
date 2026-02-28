@@ -16,7 +16,10 @@ public class CreateLoanPackageRequest {
     private String packageName;
 
     @NotNull(message = "Time period is required")
-    private Integer timePeriod; // in days
+    private Integer timePeriod;
+
+    @NotNull(message = "Rental period is required")
+    private Integer rentalPeriod;
 
     @NotNull(message = "Interest rate is required")
     @DecimalMin(value = "0.0", message = "Interest rate must be non-negative")
