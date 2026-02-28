@@ -35,6 +35,24 @@ public class LoanPackageController {
         return ResponseEntity.ok(loanPackageService.getAllPackages());
     }
 
+    @GetMapping("/package-code")
+    public ResponseEntity<List<LoanPackageResponse>> searchPackagesByPackageCode(
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(loanPackageService.searchPackagesByPackageCode(search));
+        }
+        return ResponseEntity.ok(loanPackageService.getAllPackages());
+    }
+
+    @GetMapping("/package-name")
+    public ResponseEntity<List<LoanPackageResponse>> searchPackagesByPackageName(
+            @RequestParam(required = false) String search) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(loanPackageService.searchPackagesByPackageName(search));
+        }
+        return ResponseEntity.ok(loanPackageService.getAllPackages());
+    }
+
     @GetMapping("/{packageCode}")
     public ResponseEntity<LoanPackageResponse> getPackageByCode(@PathVariable String packageCode) {
         return ResponseEntity.ok(loanPackageService.getPackageByCode(packageCode));

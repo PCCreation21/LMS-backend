@@ -13,4 +13,6 @@ public interface LoanPackageService {
     LoanPackageResponse updatePackage(String packageCode, UpdateLoanPackageRequest request);
     void deletePackage(String packageCode);
 
+    List<LoanPackageResponse> searchPackagesByPackageCode(String search);
+    List<LoanPackageResponse> searchPackagesByPackageName(String search);
 }
