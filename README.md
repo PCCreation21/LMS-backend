@@ -178,6 +178,8 @@ Protected endpoints require:
 |--------|----------|-------------|
 | POST | `/api/loan-packages` | Create package |
 | GET | `/api/loan-packages` | List packages |
+| GET | `/api/loan-packages/package-code?search=` | Search packages by code |
+| GET | `/api/loan-packages/package-name?search=` | Search packages by name |
 | GET | `/api/loan-packages/{packageCode}` | Get package |
 | PUT | `/api/loan-packages/{packageCode}` | Update package |
 | DELETE | `/api/loan-packages/{packageCode}` | Delete package |
@@ -198,12 +200,15 @@ Protected endpoints require:
 |--------|----------|-------------|
 | POST | `/api/loans` | Issue loan |
 | GET | `/api/loans` | List loans |
-| GET | `/api/loans?status=OPEN` | Filter by status |
-| GET | `/api/loans?routeCode=R001` | Filter by route |
-| GET | `/api/loans?nic=199512345678` | Filter by customer |
+| GET | `/api/loans?status=OPEN` | Search by status |
+| GET | `/api/loans?routeCode=R001` | Search by route |
+| GET | `/api/loans?nic=199512345678` | Search by customer |
+| GET | `/api/loans?startDateFrom=03-03-2026&startDateTo=05-03-2026` | Filter by start date |
+| GET | `/api/loans?endDateFrom=03-03-2026&endDateTo=05-03-2026` | Filter by end date |
+| GET | `/api/loans?nextPaidDateFrom=03-03-2026&nextPaidDateTo=05-03-2026` | Filter by next paid date |
+| GET | `/api/loans?lastPaidDateFrom=03-03-2026&lastPaidDateTo=05-03-2026` | Filter by last paid date |
 | GET | `/api/loans/{loanNumber}` | Get loan details |
 | PUT | `/api/loans/{id}/state` | Update loan status |
-| POST | `/api/loans/close` | Close loan & create sub-loan |
 
 **Issue Loan Request:**
 ```json
@@ -236,8 +241,11 @@ Protected endpoints require:
 |--------|----------|-------------|
 | POST | `/api/payments/collect` | Collect rental payment |
 | GET | `/api/payments/loan/{loanNumber}` | Payment history for loan |
-| GET | `/api/payments/customer/{nic}` | All payments by customer |
-| GET | `/api/payments/route/{routeCode}/collections?date=2026-02-20` | Route collection summary |
+| GET | `/api/payments/customer/{customerNic}` | All payments by customer |
+| GET | `/api/payments/route-collection` | Get route-collection summary |
+| GET | `/api/payments/route-collection/route-code` | Search route-collection by route code |
+| GET | `/api/payments/route-collection/officer` | Search route-collection by route officer |
+| GET | `/api/payments/route-collection/date` | Search route-collection by date |
 
 **Collect Payment Request:**
 ```json
