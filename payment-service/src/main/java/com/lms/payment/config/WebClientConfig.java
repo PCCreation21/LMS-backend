@@ -18,6 +18,9 @@ public class WebClientConfig {
     @Value("${customer.service.url}")
     private String customerServiceUrl;
 
+    @Value("${system.service.url}")
+    private String systemServiceUrl;
+
     @Bean("loanWebClient")
     public WebClient loanWebClient() {
         return WebClient.builder()
@@ -30,6 +33,14 @@ public class WebClientConfig {
     public WebClient customerWebClient() {
         return WebClient.builder()
                 .baseUrl(customerServiceUrl)
+                .filter(headerPropagationFilter)
+                .build();
+    }
+
+    @Bean("systemWebClient")
+    public WebClient systemWebClient() {
+        return WebClient.builder()
+                .baseUrl(systemServiceUrl)
                 .filter(headerPropagationFilter)
                 .build();
     }

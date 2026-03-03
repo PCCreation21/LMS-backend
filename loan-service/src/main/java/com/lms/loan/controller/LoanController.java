@@ -85,10 +85,4 @@ public class LoanController {
             @Valid @RequestBody UpdateLoanStateRequest request) {
         return ResponseEntity.ok(loanService.updateLoanState(id, request));
     }
-
-    @PostMapping("/close")
-    public ResponseEntity<LoanResponse> closeAndCreateSubLoan(
-            @Valid @RequestBody CloseLoanRequest request) {
-        return ResponseEntity.ok(loanService.closeAndCreateSubLoan(request));
-    }
 }

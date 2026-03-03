@@ -15,7 +15,8 @@ public interface PaymentService {
     ReceiptResponse collectPayment(CollectPaymentRequest request, String collectedBy);
     List<PaymentResponse> getPaymentsByLoan(String loanNumber);
     List<PaymentResponse> getPaymentsByCustomer(String customerNic);
-    List<RouteCollectionSummary> getRouteCollections(String routeCode, LocalDate date);
-    ReceiptResponse buildReceipt(Map loanData, Payment payment, BigDecimal paidAmount);
-    PaymentResponse mapToResponse(Payment payment);
+    List<RouteCollectionSummary> getRouteCollectionSummary();
+    List<RouteCollectionSummary> searchRouteCollectionSummaryByRoutecode(String search);
+    List<RouteCollectionSummary> searchRouteCollectionSummaryByOfficer(String search);
+    List<RouteCollectionSummary> searchRouteCollectionSummaryByDate(LocalDate date);
 }

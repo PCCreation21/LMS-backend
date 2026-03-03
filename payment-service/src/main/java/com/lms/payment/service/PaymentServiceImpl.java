@@ -6,6 +6,7 @@ import com.lms.payment.dto.ReceiptResponse;
 import com.lms.payment.dto.RouteCollectionSummary;
 import com.lms.payment.entity.Payment;
 import com.lms.payment.repository.PaymentRepository;
+import com.lms.payment.repository.projection.RouteCollectionSummaryView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -33,124 +34,208 @@ public class PaymentServiceImpl implements PaymentService{
     @Qualifier("customerWebClient")
     private final WebClient customerWebClient;
 
+    @Qualifier("systemWebClient")
+    private final WebClient systemWebClient;
+
+    @Override
     @Transactional
-    public ReceiptResponse collectPayment(
-            CollectPaymentRequest request,
-            String collectedBy) {
+    public ReceiptResponse collectPayment(CollectPaymentRequest request, String collectedBy) {
 
-        Map loanData = loanWebClient.get()
-                .uri("/api/loans/" + request.getLoanNumber())
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
-
-        if (loanData == null) {
-            throw new RuntimeException("Loan not found: " + request.getLoanNumber());
-        }
+        Map loanData = getLoanData(request.getLoanNumber());
 
         String status = (String) loanData.get("status");
         if ("COMPLETED".equals(status) || "CLOSED".equals(status)) {
             throw new RuntimeException("Cannot collect payment for " + status + " loan");
         }
 
-        String customerNic = (String) loanData.get("customerNic");
-        String customerName = (String) loanData.get("customerName");
-        String routeCode = (String) loanData.get("routeCode");
-        Object balanceObj = loanData.get("outstandingBalance");
-        BigDecimal outstandingBalance = new BigDecimal(balanceObj.toString());
+        Map loanPackageData = getLoanPackageData((String) loanData.get("packageCode"));
+        Map routeData = getRouteData((String) loanData.get("routeCode"));
 
-        BigDecimal newBalance = outstandingBalance.subtract(request.getPaidAmount());
+        BigDecimal oldOutstanding = new BigDecimal(loanData.get("outstandingBalance").toString());
+        BigDecimal balanceAfter = oldOutstanding.subtract(request.getPaidAmount()).max(BigDecimal.ZERO);
 
         Payment payment = Payment.builder()
                 .loanNumber(request.getLoanNumber())
-                .customerNic(customerNic)
-                .customerName(customerName)
+                .customerNic((String) loanData.get("customerNic"))
+                .customerName((String) loanData.get("customerName"))
                 .paidAmount(request.getPaidAmount())
-                .balanceAfterPayment(newBalance.max(BigDecimal.ZERO))
+                .balanceAfterPayment(balanceAfter) // this is ok as a snapshot, but loan-service is truth
                 .paymentDate(LocalDate.now())
                 .collectedBy(collectedBy)
-                .routeCode(routeCode)
+                .routeCode((String) loanData.get("routeCode"))
                 .remark(request.getRemark())
                 .createdAt(LocalDateTime.now())
                 .build();
 
         paymentRepository.save(payment);
 
-        loanWebClient.post()
-                .uri("/api/loans/" + request.getLoanNumber() + "/payment")
-                .bodyValue(Map.of("paidAmount", request.getPaidAmount()))
-                .retrieve()
-                .bodyToMono(Map.class)
-                .block();
+        Map updatedLoanData = applyPaymentInLoanService(request.getLoanNumber(), request.getPaidAmount());
 
-        return buildReceipt(loanData, payment, request.getPaidAmount());
+        return buildReceiptAfterApply(loanData, loanPackageData, routeData, updatedLoanData, payment);
     }
 
+    @Override
     public List<PaymentResponse> getPaymentsByLoan(String loanNumber) {
         return paymentRepository.findByLoanNumberOrderByPaymentDateAsc(loanNumber).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
+    @Override
     public List<PaymentResponse> getPaymentsByCustomer(String customerNic) {
         return paymentRepository.findByCustomerNic(customerNic).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    public List<RouteCollectionSummary> getRouteCollections(
-            String routeCode, LocalDate date) {
-        List<Payment> payments = paymentRepository.findByRouteCodeAndPaymentDate(routeCode, date);
-        BigDecimal total = payments.stream()
-                .map(Payment::getPaidAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        RouteCollectionSummary summary = new RouteCollectionSummary();
-        summary.setRouteCode(routeCode);
-        summary.setTotalCollectedAmount(total);
-        summary.setCollectionDate(date);
-        summary.setTotalCustomers(payments.stream().map(Payment::getCustomerNic).distinct().count());
-        summary.setStatus(total.compareTo(BigDecimal.ZERO) == 0 ? "No Collection" : "Completed");
-
-        return List.of(summary);
+    @Override
+    public List<RouteCollectionSummary> getRouteCollectionSummary() {
+        return mapToDto(paymentRepository.getRouteCollectionSummary());
     }
 
-    public ReceiptResponse buildReceipt(Map loanData, Payment payment, BigDecimal paidAmount) {
-        ReceiptResponse receipt = new ReceiptResponse();
-        receipt.setLoanNumber((String) loanData.get("loanNumber"));
-        receipt.setCustomerName((String) loanData.get("customerName"));
-        receipt.setLoanCode((String) loanData.get("packageCode"));
+    @Override
+    public List<RouteCollectionSummary> searchRouteCollectionSummaryByRoutecode(String search) {
+        return mapToDto(paymentRepository.searchRouteCollectionSummaryByRoutecode(search));
+    }
 
-        Object loanAmountObj = loanData.get("loanAmount");
+    @Override
+    public List<RouteCollectionSummary> searchRouteCollectionSummaryByOfficer(String search) {
+        return mapToDto(paymentRepository.searchRouteCollectionSummaryByOfficer(search));
+    }
+
+    @Override
+    public List<RouteCollectionSummary> searchRouteCollectionSummaryByDate(LocalDate date) {
+        return mapToDto(paymentRepository.searchRouteCollectionSummaryByDate(date));
+    }
+
+    private List<RouteCollectionSummary> mapToDto(List<RouteCollectionSummaryView> results) {
+        return results.stream().map(r -> {
+            RouteCollectionSummary dto = new RouteCollectionSummary();
+            dto.setRouteCode(r.getRouteCode());
+            dto.setRouteOfficer(r.getRouteOfficer());
+            dto.setTotalCustomers(r.getTotalCustomers());
+            dto.setTotalCollectedAmount(r.getTotalCollectedAmount());
+            dto.setCollectionDate(r.getCollectionDate());
+            Map routeData = getRouteData(r.getRouteCode());
+            dto.setRouteName((String) routeData.get("routeName"));
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    private ReceiptResponse buildReceiptAfterApply(
+            Map oldLoanData,
+            Map loanPackageData,
+            Map routeData,
+            Map updatedLoanData,
+            Payment payment
+    ) {
+
+        ReceiptResponse receipt = new ReceiptResponse();
+
+        receipt.setBillDateTime(payment.getCreatedAt());
+        receipt.setLoanNumber((String) oldLoanData.get("loanNumber"));
+        receipt.setCustomerName((String) oldLoanData.get("customerName"));
+        receipt.setLoanCode((String) oldLoanData.get("packageCode"));
+
+        Object loanAmountObj = oldLoanData.get("loanAmount");
         if (loanAmountObj != null) receipt.setLoanAmount(new BigDecimal(loanAmountObj.toString()));
 
-        // Dates from loanData
-        String startDateStr = (String) loanData.get("startDate");
-        String endDateStr = (String) loanData.get("endDate");
-        String nextDateStr = (String) loanData.get("nextPaidDate");
+        Number timePeriodNum = (Number) loanPackageData.get("timePeriod");
+        if (timePeriodNum != null) receipt.setDuration(timePeriodNum.intValue());
+
+        String routeNameStr = (String) routeData.get("routeName");
+        if (routeNameStr != null) receipt.setRoute(routeNameStr);
+
+        // dates
+        String startDateStr = (String) oldLoanData.get("startDate");
+        String endDateStr = (String) oldLoanData.get("endDate");
+        String nextDateStr = (String) updatedLoanData.get("nextPaidDate");
+        String lastPaidDateStr = (String) oldLoanData.get("lastPaidDate");
 
         if (startDateStr != null) receipt.setStartDate(LocalDate.parse(startDateStr));
         if (endDateStr != null) receipt.setEndDate(LocalDate.parse(endDateStr));
-        receipt.setLastPaidDate(payment.getPaymentDate());
-        if (nextDateStr != null) receipt.setNextPaidDate(LocalDate.parse(nextDateStr).plusDays(30));
+        if (nextDateStr != null) receipt.setNextPaidDate(LocalDate.parse(nextDateStr));
+        if (lastPaidDateStr != null) receipt.setLastPaidDate(LocalDate.parse(lastPaidDateStr));
 
-        Object rentalObj = loanData.get("rentalAmount");
+        Object rentalObj = oldLoanData.get("rentalAmount");
         if (rentalObj != null) receipt.setRental(new BigDecimal(rentalObj.toString()));
 
-        Object totalPaidObj = loanData.get("totalPaidAmount");
-        if (totalPaidObj != null) receipt.setTotalPaidAmount(new BigDecimal(totalPaidObj.toString()).add(paidAmount));
+        Object totalPaidObj = updatedLoanData.get("totalPaidAmount");
+        if (totalPaidObj != null) receipt.setTotalPaidAmount(new BigDecimal(totalPaidObj.toString()));
 
-        receipt.setPaidAmount(paidAmount);
+        receipt.setPaidAmount(payment.getPaidAmount());
         receipt.setPaymentDate(payment.getPaymentDate());
+
+        Object newOutstandingObj = updatedLoanData.get("outstandingBalance");
+        if (newOutstandingObj != null) {
+            receipt.setClosingBalance(new BigDecimal(newOutstandingObj.toString()));
+        } else {
+            receipt.setClosingBalance(payment.getBalanceAfterPayment());
+        }
+
         receipt.setCollectedBy(payment.getCollectedBy());
 
-        Object dueToPaidObj = loanData.get("dueToPaid");
+        Object dueToPaidObj = updatedLoanData.get("dueToPaid");
         if (dueToPaidObj != null) receipt.setDueToPaid(new BigDecimal(dueToPaidObj.toString()));
 
-        Object arrearsObj = loanData.get("arrearsAmount");
+        Object arrearsObj = updatedLoanData.get("arrearsAmount");
         if (arrearsObj != null) receipt.setArrearsAmount(new BigDecimal(arrearsObj.toString()));
 
+        Object cfObj = updatedLoanData.get("carriedForwardAmount");
+        if (cfObj != null) receipt.setBroughtForward(new BigDecimal(cfObj.toString()));
+
         return receipt;
+    }
+
+    public Map getLoanData(String loanNumber){
+
+        Map loanData = loanWebClient.get()
+                .uri("/api/loans/" + loanNumber)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (loanData == null) {
+            throw new RuntimeException("Loan not found: " + loanNumber);
+        }
+
+        return loanData;
+    }
+
+    public Map getLoanPackageData(String packageCode){
+        Map loanPackageData = loanWebClient.get()
+                .uri("/api/loan-packages/" + packageCode)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (loanPackageData == null) {
+            throw new RuntimeException("Loan package not found: " +packageCode);
+        }
+
+        return loanPackageData;
+    }
+
+    public Map getRouteData(String routeCode){
+        Map routeData =systemWebClient.get()
+                .uri("/api/routes/"+routeCode)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (routeData == null){
+            throw new RuntimeException("Route not found: "+routeCode);
+        }
+        return routeData;
+    }
+
+    private Map applyPaymentInLoanService(String loanNumber, BigDecimal paidAmount) {
+        return loanWebClient.post()
+                .uri("/api/loans/" + loanNumber + "/payment")
+                .bodyValue(Map.of("paidAmount", paidAmount))
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
     }
 
     public PaymentResponse mapToResponse(Payment payment) {
