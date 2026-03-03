@@ -2,6 +2,8 @@ package com.lms.payment.repository;
 
 import com.lms.payment.entity.Payment;
 import com.lms.payment.repository.projection.RouteCollectionSummaryView;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,7 +15,7 @@ import java.util.List;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
-    List<Payment> findByLoanNumberOrderByPaymentDateAsc(String loanNumber);
+    Page<Payment> findByLoanNumberOrderByPaymentDateAsc(String loanNumber, Pageable pageable);
     List<Payment> findByCustomerNic(String customerNic);
 
     @Query("""
@@ -27,7 +29,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         GROUP BY p.paymentDate, p.routeCode, p.collectedBy
         ORDER BY p.paymentDate DESC, p.routeCode ASC, p.collectedBy ASC
     """)
-    List<RouteCollectionSummaryView> getRouteCollectionSummary();
+    Page<RouteCollectionSummaryView> getRouteCollectionSummary(Pageable pageable);
 
     @Query("""
         SELECT
@@ -41,7 +43,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         GROUP BY p.paymentDate, p.routeCode, p.collectedBy
         ORDER BY p.paymentDate DESC, p.routeCode ASC, p.collectedBy ASC
     """)
-    List<RouteCollectionSummaryView> searchRouteCollectionSummaryByRoutecode(@Param("search") String search);
+    Page<RouteCollectionSummaryView> searchRouteCollectionSummaryByRoutecode(@Param("search") String search, Pageable pageable);
 
     @Query("""
         SELECT
@@ -55,7 +57,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         GROUP BY p.paymentDate, p.routeCode, p.collectedBy
         ORDER BY p.paymentDate DESC, p.routeCode ASC, p.collectedBy ASC
     """)
-    List<RouteCollectionSummaryView> searchRouteCollectionSummaryByOfficer(@Param("search") String search);
+    Page<RouteCollectionSummaryView> searchRouteCollectionSummaryByOfficer(@Param("search") String search, Pageable pageable);
 
     @Query("""
         SELECT
@@ -69,7 +71,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
         GROUP BY p.paymentDate, p.routeCode, p.collectedBy
         ORDER BY p.paymentDate DESC, p.routeCode ASC, p.collectedBy ASC
     """)
-    List<RouteCollectionSummaryView> searchRouteCollectionSummaryByDate(@Param("date") LocalDate date);
+    Page<RouteCollectionSummaryView> searchRouteCollectionSummaryByDate(@Param("date") LocalDate date, Pageable pageable);
 
 
 }

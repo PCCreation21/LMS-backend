@@ -10,8 +10,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
@@ -29,44 +27,59 @@ public class CustomerController {
 
     @PreAuthorize("hasAuthority('VIEW_CUSTOMER')")
     @GetMapping
-    public ResponseEntity<List<CustomerResponse>> getAllCustomers(){
-        return ResponseEntity.ok(customerService.getAllCustomers());
+    public ResponseEntity<PageResponse<CustomerResponse>> getAllCustomers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ){
+        return ResponseEntity.ok(customerService.getAllCustomers(page, size));
     }
 
     @GetMapping("/username")
-    public ResponseEntity<List<CustomerResponse>> searchCustomersByName(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<CustomerResponse>> searchCustomersByName(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(customerService.searchCustomersByName(search));
+            return ResponseEntity.ok(customerService.searchCustomersByName(page, size, search));
         }
-        return ResponseEntity.ok(customerService.getAllCustomers());
+        return ResponseEntity.ok(customerService.getAllCustomers(page, size));
     }
 
     @GetMapping("/nic")
-    public ResponseEntity<List<CustomerResponse>> searchCustomersByNic(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<CustomerResponse>> searchCustomersByNic(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(customerService.searchCustomersByNic(search));
+            return ResponseEntity.ok(customerService.searchCustomersByNic(page, size, search));
         }
-        return ResponseEntity.ok(customerService.getAllCustomers());
+        return ResponseEntity.ok(customerService.getAllCustomers(page, size));
     }
 
     @GetMapping("/route")
-    public ResponseEntity<List<CustomerResponse>> searchCustomersByRouteCode(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<CustomerResponse>> searchCustomersByRouteCode(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(customerService.searchCustomersByRouteCode(search));
+            return ResponseEntity.ok(customerService.searchCustomersByRouteCode(page, size, search));
         }
-        return ResponseEntity.ok(customerService.getAllCustomers());
+        return ResponseEntity.ok(customerService.getAllCustomers(page, size));
     }
 
     @GetMapping("/status")
-    public ResponseEntity<List<CustomerResponse>> searchCustomersByStatus(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<CustomerResponse>> searchCustomersByStatus(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(customerService.searchCustomersByStatus(search));
+            return ResponseEntity.ok(customerService.searchCustomersByStatus(page, size, search));
         }
-        return ResponseEntity.ok(customerService.getAllCustomers());
+        return ResponseEntity.ok(customerService.getAllCustomers(page, size));
     }
 
     @GetMapping("/{id}")

@@ -1,17 +1,17 @@
 package com.lms.loan.service;
 
-import com.lms.loan.dto.CloseLoanRequest;
-import com.lms.loan.dto.IssueLoanRequest;
-import com.lms.loan.dto.LoanResponse;
-import com.lms.loan.dto.UpdateLoanStateRequest;
+import com.lms.loan.dto.*;
 import com.lms.loan.entity.Loan;
 import com.lms.loan.entity.LoanPackage;
 import com.lms.loan.repository.LoanPackageRepository;
 import com.lms.loan.repository.LoanRepository;
 import com.lms.loan.specification.LoanSpecifications;
+import com.lms.loan.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -97,7 +97,9 @@ public class LoanServiceImpl implements LoanService{
     }
 
     @Override
-    public List<LoanResponse> getAllLoans(
+    public PageResponse<LoanResponse> getAllLoans(
+            int page,
+            int size,
             String status,
             String routeCode,
             String nic,
@@ -141,10 +143,9 @@ public class LoanServiceImpl implements LoanService{
         spec = spec.and(LoanSpecifications.nextPaidDateBetween(nextPaidDateFrom, nextPaidDateTo));
         spec = spec.and(LoanSpecifications.lastPaidDateBetween(lastPaidDateFrom, lastPaidDateTo));
 
-        return loanRepository.findAll(spec)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Loan> loansPage = loanRepository.findAll(spec,pageable);
+        return PaginationUtils.toPageResponse(loansPage,this::mapToResponse);
     }
 
     @Override

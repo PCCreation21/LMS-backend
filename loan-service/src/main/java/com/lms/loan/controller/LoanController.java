@@ -12,7 +12,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,8 +30,10 @@ public class LoanController {
 
     @PreAuthorize("hasAuthority('VIEW_LOAN')")
     @GetMapping
-    public ResponseEntity<List<LoanResponse>> getAllLoans(
+    public ResponseEntity<PageResponse<LoanResponse>> getAllLoans(
 
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String routeCode,
             @RequestParam(required = false) String nic,
@@ -57,6 +58,8 @@ public class LoanController {
 
         return ResponseEntity.ok(
                 loanService.getAllLoans(
+                        page,
+                        size,
                         status,
                         routeCode,
                         nic,

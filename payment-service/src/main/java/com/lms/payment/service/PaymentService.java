@@ -1,9 +1,6 @@
 package com.lms.payment.service;
 
-import com.lms.payment.dto.CollectPaymentRequest;
-import com.lms.payment.dto.PaymentResponse;
-import com.lms.payment.dto.ReceiptResponse;
-import com.lms.payment.dto.RouteCollectionSummary;
+import com.lms.payment.dto.*;
 import com.lms.payment.entity.Payment;
 
 import java.math.BigDecimal;
@@ -13,10 +10,10 @@ import java.util.Map;
 
 public interface PaymentService {
     ReceiptResponse collectPayment(CollectPaymentRequest request, String collectedBy);
-    List<PaymentResponse> getPaymentsByLoan(String loanNumber);
+    PageResponse<PaymentResponse> getPaymentsByLoan(int page, int size,String loanNumber);
     List<PaymentResponse> getPaymentsByCustomer(String customerNic);
-    List<RouteCollectionSummary> getRouteCollectionSummary();
-    List<RouteCollectionSummary> searchRouteCollectionSummaryByRoutecode(String search);
-    List<RouteCollectionSummary> searchRouteCollectionSummaryByOfficer(String search);
-    List<RouteCollectionSummary> searchRouteCollectionSummaryByDate(LocalDate date);
+    PageResponse<RouteCollectionSummary> getRouteCollectionSummary(int page, int size);
+    PageResponse<RouteCollectionSummary> searchRouteCollectionSummaryByRoutecode(int page, int size, String search);
+    PageResponse<RouteCollectionSummary> searchRouteCollectionSummaryByOfficer(int page, int size, String search);
+    PageResponse<RouteCollectionSummary> searchRouteCollectionSummaryByDate(int page, int size, LocalDate date);
 }

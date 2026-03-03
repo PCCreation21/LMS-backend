@@ -1,15 +1,15 @@
 package com.lms.payment.service;
 
-import com.lms.payment.dto.CollectPaymentRequest;
-import com.lms.payment.dto.PaymentResponse;
-import com.lms.payment.dto.ReceiptResponse;
-import com.lms.payment.dto.RouteCollectionSummary;
+import com.lms.payment.dto.*;
 import com.lms.payment.entity.Payment;
 import com.lms.payment.repository.PaymentRepository;
 import com.lms.payment.repository.projection.RouteCollectionSummaryView;
+import com.lms.payment.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -75,10 +75,10 @@ public class PaymentServiceImpl implements PaymentService{
     }
 
     @Override
-    public List<PaymentResponse> getPaymentsByLoan(String loanNumber) {
-        return paymentRepository.findByLoanNumberOrderByPaymentDateAsc(loanNumber).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<PaymentResponse> getPaymentsByLoan(int page, int size, String loanNumber) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Payment> paymentPage = paymentRepository.findByLoanNumberOrderByPaymentDateAsc(loanNumber,pageable);
+        return PaginationUtils.toPageResponse(paymentPage,this::mapToResponse);
     }
 
     @Override
@@ -89,23 +89,31 @@ public class PaymentServiceImpl implements PaymentService{
     }
 
     @Override
-    public List<RouteCollectionSummary> getRouteCollectionSummary() {
-        return mapToDto(paymentRepository.getRouteCollectionSummary());
+    public PageResponse<RouteCollectionSummary> getRouteCollectionSummary(int page, int size) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<RouteCollectionSummaryView> routeCollectionPage = paymentRepository.getRouteCollectionSummary(pageable);
+        return PaginationUtils.toPageResponseFromList(routeCollectionPage,this::mapToDto);
     }
 
     @Override
-    public List<RouteCollectionSummary> searchRouteCollectionSummaryByRoutecode(String search) {
-        return mapToDto(paymentRepository.searchRouteCollectionSummaryByRoutecode(search));
+    public PageResponse<RouteCollectionSummary> searchRouteCollectionSummaryByRoutecode(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<RouteCollectionSummaryView> routeCollectionPage = paymentRepository.searchRouteCollectionSummaryByRoutecode(search, pageable);
+        return PaginationUtils.toPageResponseFromList(routeCollectionPage,this::mapToDto);
     }
 
     @Override
-    public List<RouteCollectionSummary> searchRouteCollectionSummaryByOfficer(String search) {
-        return mapToDto(paymentRepository.searchRouteCollectionSummaryByOfficer(search));
+    public PageResponse<RouteCollectionSummary> searchRouteCollectionSummaryByOfficer(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<RouteCollectionSummaryView> routeCollectionPage = paymentRepository.searchRouteCollectionSummaryByOfficer(search, pageable);
+        return PaginationUtils.toPageResponseFromList(routeCollectionPage,this::mapToDto);
     }
 
     @Override
-    public List<RouteCollectionSummary> searchRouteCollectionSummaryByDate(LocalDate date) {
-        return mapToDto(paymentRepository.searchRouteCollectionSummaryByDate(date));
+    public PageResponse<RouteCollectionSummary> searchRouteCollectionSummaryByDate(int page, int size, LocalDate date) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<RouteCollectionSummaryView> routeCollectionPage = paymentRepository.searchRouteCollectionSummaryByDate(date, pageable);
+        return PaginationUtils.toPageResponseFromList(routeCollectionPage,this::mapToDto);
     }
 
     private List<RouteCollectionSummary> mapToDto(List<RouteCollectionSummaryView> results) {
