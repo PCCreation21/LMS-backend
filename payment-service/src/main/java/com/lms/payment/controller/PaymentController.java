@@ -8,7 +8,6 @@ import com.lms.payment.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -46,11 +45,45 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getPaymentsByCustomer(customerNic));
     }
 
-    @GetMapping("/route/{routeCode}/collections")
-    public ResponseEntity<List<RouteCollectionSummary>> getRouteCollections(
-            @PathVariable String routeCode,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        if (date == null) date = LocalDate.now();
-        return ResponseEntity.ok(paymentService.getRouteCollections(routeCode, date));
+    @GetMapping("/route-collection")
+    public List<RouteCollectionSummary> getRouteCollectionSummary() {
+        return paymentService.getRouteCollectionSummary();
     }
+
+    @GetMapping("/route-collection/route-code")
+    public ResponseEntity<List<RouteCollectionSummary>> getRouteCollectionSummary(
+            @RequestParam(required = false) String search
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(
+                    paymentService.searchRouteCollectionSummaryByRoutecode(search)
+            );
+        }
+        return ResponseEntity.ok(
+                paymentService.getRouteCollectionSummary()
+        );
+    }
+
+    @GetMapping("/route-collection/officer")
+    public ResponseEntity<List<RouteCollectionSummary>> searchByOfficer(
+            @RequestParam(required = false) String search
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(paymentService.searchRouteCollectionSummaryByOfficer(search));
+        }
+        return ResponseEntity.ok(paymentService.getRouteCollectionSummary());
+    }
+
+    @GetMapping("/route-collection/date")
+    public ResponseEntity<List<RouteCollectionSummary>> searchByDate(
+            @RequestParam(required = false) String date
+    ) {
+        if (date != null && !date.isEmpty()) {
+            return ResponseEntity.ok(
+                    paymentService.searchRouteCollectionSummaryByDate(LocalDate.parse(date))
+            );
+        }
+        return ResponseEntity.ok(paymentService.getRouteCollectionSummary());
+    }
+
 }

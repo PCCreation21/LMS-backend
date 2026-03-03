@@ -27,6 +27,5 @@ public interface LoanService {
     );
     LoanResponse getLoanByNumber(String loanNumber);
     LoanResponse updateLoanState(Long id, UpdateLoanStateRequest request);
-    void applyPayment(String loanNumber, BigDecimal paidAmount);
-    LoanResponse closeAndCreateSubLoan(CloseLoanRequest request);
+    LoanResponse applyPayment(String loanNumber, BigDecimal paidAmount);
 }

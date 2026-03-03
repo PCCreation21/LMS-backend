@@ -55,8 +55,17 @@ public class Loan {
     @Column(name = "outstanding_balance", precision = 12, scale = 2)
     private BigDecimal outstandingBalance;
 
-    @Column(name = "carried_forward_amount", precision = 10, scale = 2)
+    @Column(name = "carried_forward_amount", precision = 10, scale = 2, nullable = false)
+    @Builder.Default
     private BigDecimal carriedForwardAmount = BigDecimal.ZERO;
+
+    @Column(name = "due_to_paid", precision = 12, scale = 2, nullable = false)
+    @Builder.Default
+    private BigDecimal dueToPaid = BigDecimal.ZERO;
+
+    @Column(name = "arrears_amount", precision = 12, scale = 2, nullable = false)
+    @Builder.Default
+    private BigDecimal arrearsAmount = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -65,7 +74,6 @@ public class Loan {
     @Column(name = "route_code", nullable = false)
     private String routeCode;
 
-    // Parent loan reference (for sub-loans)
     @Column(name = "parent_loan_id")
     private Long parentLoanId;
 
