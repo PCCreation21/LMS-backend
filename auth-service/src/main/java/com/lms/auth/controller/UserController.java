@@ -11,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("api/users")
 @PreAuthorize("hasAuthority('USER_MANAGEMENT')")
@@ -31,8 +29,36 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<PageResponse<UserResponse>>getAllUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ){
+        return ResponseEntity.ok(userService.getAllUsers(
+                page, size));
+    }
+
+    @GetMapping("/username")
+    public ResponseEntity<PageResponse<UserResponse>> searchUsersByName(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(userService.searchUsersByName(page, size ,search));
+        }
+        return ResponseEntity.ok(userService.getAllUsers(page, size));
+    }
+
+    @GetMapping("/nic")
+    public ResponseEntity<PageResponse<UserResponse>> searchUsersByNic(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(userService.searchUsersByNic(page, size ,search));
+        }
+        return ResponseEntity.ok(userService.getAllUsers(page, size));
     }
 
     @GetMapping("/{id}")
@@ -48,24 +74,6 @@ public class UserController {
     @GetMapping("/username/{username}")
     public ResponseEntity<UserResponse> getUserByName(@PathVariable String username){
         return ResponseEntity.ok(userService.getUserBYName(username));
-    }
-
-    @GetMapping("/username")
-    public ResponseEntity<List<UserResponse>> searchUsersByName(
-            @RequestParam(required = false) String search) {
-        if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(userService.searchUsersByName(search));
-        }
-        return ResponseEntity.ok(userService.getAllUsers());
-    }
-
-    @GetMapping("/nic")
-    public ResponseEntity<List<UserResponse>> searchUsersByNic(
-            @RequestParam(required = false) String search) {
-        if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(userService.searchUsersByNic(search));
-        }
-        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @PutMapping("/{id}")

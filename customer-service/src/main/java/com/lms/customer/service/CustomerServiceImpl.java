@@ -2,17 +2,19 @@ package com.lms.customer.service;
 
 import com.lms.customer.dto.CreateCustomerRequest;
 import com.lms.customer.dto.CustomerResponse;
+import com.lms.customer.dto.PageResponse;
 import com.lms.customer.dto.UpdateCustomerRequest;
 import com.lms.customer.entity.Customer;
 import com.lms.customer.repository.CustomerRepository;
+import com.lms.customer.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,10 +49,12 @@ public class CustomerServiceImpl implements CustomerService{
         return mapToResponse(customer);
     }
 
-    public List<CustomerResponse> getAllCustomers() {
-        return customerRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<CustomerResponse> getAllCustomers(int page, int size) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+
+        Page<Customer> customersPage = customerRepository.findAll(pageable);
+
+        return PaginationUtils.toPageResponse(customersPage,this::mapToResponse);
     }
 
     public CustomerResponse getCustomerById(Long id) {
@@ -65,30 +69,40 @@ public class CustomerServiceImpl implements CustomerService{
         return mapToResponse(customer);
     }
 
-    public List<CustomerResponse> searchCustomersByNic(String search) {
-        return customerRepository.searchCustomersByNic(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<CustomerResponse> searchCustomersByNic(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+
+        Page<Customer> customersPage = customerRepository.searchCustomersByNic(search,pageable);
+
+        return PaginationUtils.toPageResponse(customersPage,this::mapToResponse);
     }
 
     @Override
-    public List<CustomerResponse> searchCustomersByRouteCode(String search) {
-        return customerRepository.searchCustomersByRouteCode(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<CustomerResponse> searchCustomersByRouteCode(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+
+        Page<Customer> customersPage = customerRepository.searchCustomersByRouteCode(search,pageable);
+
+        return PaginationUtils.toPageResponse(customersPage,this::mapToResponse);
     }
 
     @Override
-    public List<CustomerResponse> searchCustomersByStatus(String search) {
-        return customerRepository.searchCustomersByStatus(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<CustomerResponse> searchCustomersByStatus(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+
+        Page<Customer> customersPage = customerRepository.searchCustomersByStatus(search,pageable);
+
+        return PaginationUtils.toPageResponse(customersPage,this::mapToResponse);
     }
 
-    public List<CustomerResponse> getCustomersByRoute(String routeCode) {
-        return customerRepository.findByRouteCode(routeCode).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+
+    @Override
+    public PageResponse<CustomerResponse> searchCustomersByName(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+
+        Page<Customer> customersPage = customerRepository.searchCustomersByName(search,pageable);
+
+        return PaginationUtils.toPageResponse(customersPage,this::mapToResponse);
     }
 
     @Transactional
@@ -120,13 +134,6 @@ public class CustomerServiceImpl implements CustomerService{
             throw new RuntimeException("Customer not found with id: " + id);
         }
         customerRepository.deleteById(id);
-    }
-
-    @Override
-    public List<CustomerResponse> searchCustomersByName(String search) {
-        return customerRepository.searchCustomersByName(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
     }
 
     private CustomerResponse mapToResponse(Customer customer) {

@@ -2,11 +2,15 @@ package com.lms.system.service;
 
 import com.lms.system.dto.CreateInvestorRequest;
 import com.lms.system.dto.InvestorResponse;
+import com.lms.system.dto.PageResponse;
 import com.lms.system.dto.UpdateInvestorRequest;
 import com.lms.system.entity.Investor;
 import com.lms.system.repository.InvestorRepository;
+import com.lms.system.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,24 +42,24 @@ public class InvestorServiceImpl implements InvestorService{
     }
 
     @Override
-    public List<InvestorResponse> getAllInvestors() {
-        return investorRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<InvestorResponse> getAllInvestors(int page, int size) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Investor> investorPage = investorRepository.findAll(pageable);
+        return PaginationUtils.toPageResponse(investorPage,this::mapToResponse);
     }
 
     @Override
-    public List<InvestorResponse> searchInvestorsByNic(String search) {
-        return investorRepository.searchInvestorsByNic(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<InvestorResponse> searchInvestorsByNic(int page, int size,String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Investor> investorPage = investorRepository.searchInvestorsByNic(search,pageable);
+        return PaginationUtils.toPageResponse(investorPage,this::mapToResponse);
     }
 
     @Override
-    public List<InvestorResponse> searchInvestorsByName(String search) {
-        return investorRepository.searchInvestorsByName(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<InvestorResponse> searchInvestorsByName(int page, int size,String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Investor> investorPage = investorRepository.searchInvestorsByName(search,pageable);
+        return PaginationUtils.toPageResponse(investorPage,this::mapToResponse);
     }
 
     @Override

@@ -1,12 +1,16 @@
 package com.lms.system.service;
 
 import com.lms.system.dto.CreateRouteRequest;
+import com.lms.system.dto.PageResponse;
 import com.lms.system.dto.RouteResponse;
 import com.lms.system.dto.UpdateRouteRequest;
 import com.lms.system.entity.Route;
 import com.lms.system.repository.RouteRepository;
+import com.lms.system.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,24 +40,24 @@ public class RouteServiceImpl implements RouteService{
     }
 
     @Override
-    public List<RouteResponse> getAllRoutes() {
-        return routeRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<RouteResponse> getAllRoutes(int page, int size) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Route> routePage = routeRepository.findAll(pageable);
+        return PaginationUtils.toPageResponse(routePage,this::mapToResponse);
     }
 
     @Override
-    public List<RouteResponse> searchRoutesByRouteCode(String search) {
-        return routeRepository.searchRoutesByRouteCode(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<RouteResponse> searchRoutesByRouteCode(int page, int size,String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Route> routePage = routeRepository.searchRoutesByRouteCode(search,pageable);
+        return PaginationUtils.toPageResponse(routePage,this::mapToResponse);
     }
 
     @Override
-    public List<RouteResponse> searchRoutesByRouteName(String search) {
-        return routeRepository.searchRoutesByRouteName(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<RouteResponse> searchRoutesByRouteName(int page, int size,String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Route> routePage = routeRepository.searchRoutesByRouteName(search,pageable);
+        return PaginationUtils.toPageResponse(routePage,this::mapToResponse);
     }
 
     @Override

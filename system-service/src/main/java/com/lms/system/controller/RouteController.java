@@ -1,9 +1,6 @@
 package com.lms.system.controller;
 
-import com.lms.system.dto.ApiResponse;
-import com.lms.system.dto.CreateRouteRequest;
-import com.lms.system.dto.RouteResponse;
-import com.lms.system.dto.UpdateRouteRequest;
+import com.lms.system.dto.*;
 import com.lms.system.service.RouteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +28,11 @@ public class RouteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<RouteResponse>> getAllRoutes() {
-        return ResponseEntity.ok(routeService.getAllRoutes());
+    public ResponseEntity<PageResponse<RouteResponse>> getAllRoutes(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int size
+    ) {
+        return ResponseEntity.ok(routeService.getAllRoutes(page,size));
     }
 
     @GetMapping("/{routeCode}")
@@ -41,21 +41,27 @@ public class RouteController {
     }
 
     @GetMapping("/code")
-    public ResponseEntity<List<RouteResponse>> searchRoutesByRouteCode(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<RouteResponse>> searchRoutesByRouteCode(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(routeService.searchRoutesByRouteCode(search));
+            return ResponseEntity.ok(routeService.searchRoutesByRouteCode(page,size,search));
         }
-        return ResponseEntity.ok(routeService.getAllRoutes());
+        return ResponseEntity.ok(routeService.getAllRoutes(page,size));
     }
 
     @GetMapping("/name")
-    public ResponseEntity<List<RouteResponse>> searchRoutesByRouteName(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<RouteResponse>> searchRoutesByRouteName(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(routeService.searchRoutesByRouteName(search));
+            return ResponseEntity.ok(routeService.searchRoutesByRouteName(page,size,search));
         }
-        return ResponseEntity.ok(routeService.getAllRoutes());
+        return ResponseEntity.ok(routeService.getAllRoutes(page,size));
     }
 
     @PutMapping("/{routeCode}")

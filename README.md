@@ -196,19 +196,19 @@ Protected endpoints require:
 
 **Loans:**
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/loans` | Issue loan |
-| GET | `/api/loans` | List loans |
-| GET | `/api/loans?status=OPEN` | Search by status |
-| GET | `/api/loans?routeCode=R001` | Search by route |
-| GET | `/api/loans?nic=199512345678` | Search by customer |
-| GET | `/api/loans?startDateFrom=03-03-2026&startDateTo=05-03-2026` | Filter by start date |
-| GET | `/api/loans?endDateFrom=03-03-2026&endDateTo=05-03-2026` | Filter by end date |
-| GET | `/api/loans?nextPaidDateFrom=03-03-2026&nextPaidDateTo=05-03-2026` | Filter by next paid date |
-| GET | `/api/loans?lastPaidDateFrom=03-03-2026&lastPaidDateTo=05-03-2026` | Filter by last paid date |
-| GET | `/api/loans/{loanNumber}` | Get loan details |
-| PUT | `/api/loans/{id}/state` | Update loan status |
+| Method | Endpoint                                                           | Description |
+|--------|--------------------------------------------------------------------|-------------|
+| POST | `/api/loans`                                                       | Issue loan |
+| GET | `/api/loans`                                                       | List loans |
+| GET | `/api/loans?status=OPEN`                                           | Search by status |
+| GET | `/api/loans?routeCode=R001`                                        | Search by route |
+| GET | `/api/loans?nic=199512345678`                                      | Search by customer |
+| GET | `/api/loans?startDateFrom=2026-03-02&startDateTo=2026-03-05`       | Filter by start date |
+| GET | `/api/loans?endDateFrom=2026-03-02&endDateTo=2026-03-05`           | Filter by end date |
+| GET | `/api/loans?nextPaidDateFrom=2026-03-02&nextPaidDateTo=2026-03-05` | Filter by next paid date |
+| GET | `/api/loans?lastPaidDateFrom=2026-03-02&lastPaidDateTo=2026-03-05` | Filter by last paid date |
+| GET | `/api/loans/{loanNumber}`                                          | Get loan details |
+| PUT | `/api/loans/{id}/state`                                            | Update loan status |
 
 **Issue Loan Request:**
 ```json

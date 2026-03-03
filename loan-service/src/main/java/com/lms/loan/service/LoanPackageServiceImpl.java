@@ -2,11 +2,15 @@ package com.lms.loan.service;
 
 import com.lms.loan.dto.CreateLoanPackageRequest;
 import com.lms.loan.dto.LoanPackageResponse;
+import com.lms.loan.dto.PageResponse;
 import com.lms.loan.dto.UpdateLoanPackageRequest;
 import com.lms.loan.entity.LoanPackage;
 import com.lms.loan.repository.LoanPackageRepository;
+import com.lms.loan.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,10 +43,10 @@ public class LoanPackageServiceImpl implements LoanPackageService{
     }
 
     @Override
-    public List<LoanPackageResponse> getAllPackages() {
-        return loanPackageRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<LoanPackageResponse> getAllPackages(int page, int size) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<LoanPackage> packgePage = loanPackageRepository.findAll(pageable);
+        return PaginationUtils.toPageResponse(packgePage,this::mapToResponse);
     }
 
     @Override
@@ -76,17 +80,17 @@ public class LoanPackageServiceImpl implements LoanPackageService{
     }
 
     @Override
-    public List<LoanPackageResponse> searchPackagesByPackageCode(String search) {
-        return loanPackageRepository.searchPackagesByPackageCode(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<LoanPackageResponse> searchPackagesByPackageCode(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<LoanPackage> packgePage = loanPackageRepository.searchPackagesByPackageCode(search,pageable);
+        return PaginationUtils.toPageResponse(packgePage,this::mapToResponse);
     }
 
     @Override
-    public List<LoanPackageResponse> searchPackagesByPackageName(String search) {
-        return loanPackageRepository.searchPackagesByPackageName(search).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public PageResponse<LoanPackageResponse> searchPackagesByPackageName(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<LoanPackage> packgePage = loanPackageRepository.searchPackagesByPackageName(search,pageable);
+        return PaginationUtils.toPageResponse(packgePage,this::mapToResponse);
     }
 
     private LoanPackageResponse mapToResponse(LoanPackage pkg) {

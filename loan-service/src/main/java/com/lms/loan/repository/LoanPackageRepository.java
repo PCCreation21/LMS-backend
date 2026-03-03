@@ -1,6 +1,8 @@
 package com.lms.loan.repository;
 
 import com.lms.loan.entity.LoanPackage;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -11,9 +13,9 @@ import java.util.List;
 public interface LoanPackageRepository extends JpaRepository<LoanPackage, String> {
     @Query("SELECT c FROM LoanPackage c WHERE " +
             "LOWER(c.packageCode) LIKE LOWER(CONCAT('%', :search, '%'))")
-    List<LoanPackage> searchPackagesByPackageCode(String search);
+    Page<LoanPackage> searchPackagesByPackageCode(String search, Pageable pageable);
 
     @Query("SELECT c FROM LoanPackage c WHERE " +
             "LOWER(c.packageName) LIKE LOWER(CONCAT('%', :search, '%'))")
-    List<LoanPackage> searchPackagesByPackageName(String search);
+    Page<LoanPackage> searchPackagesByPackageName(String search, Pageable pageable);
 }
