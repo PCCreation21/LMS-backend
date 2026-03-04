@@ -1,0 +1,5 @@
+com\lms\gateway\filter\AuthenticationFilter$Config.class
+com\lms\gateway\filter\RouteValidator.class
+com\lms\gateway\filter\AuthenticationFilter.class
+com\lms\gateway\util\JwtUtil.class
+com\lms\gateway\ApiGatewayApplication.class

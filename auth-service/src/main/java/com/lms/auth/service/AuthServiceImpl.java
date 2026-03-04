@@ -74,7 +74,7 @@ public class AuthServiceImpl implements AuthService{
 
     @Override
     @Transactional
-    public void changePassword(String username, ChangePasswordRequest request) {
+    public void changePassword(String username, @org.jetbrains.annotations.NotNull ChangePasswordRequest request) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
