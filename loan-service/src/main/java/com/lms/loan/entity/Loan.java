@@ -78,6 +78,6 @@ public class Loan {
     private Long parentLoanId;
 
     public enum LoanStatus {
-        OPEN, ARREARS, COMPLETED, CLOSED
+        OPEN, ARREARS, COMPLETED, CLOSED, FINAL_ARREARS
     }
 }

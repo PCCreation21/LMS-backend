@@ -265,10 +265,19 @@ public class LoanServiceImpl implements LoanService{
         loan.setDueToPaid(dueToPaid);
         loan.setArrearsAmount(arrears);
         loan.setCarriedForwardAmount(carriedForward);
+
         if (loan.getStatus() != Loan.LoanStatus.COMPLETED) {
-            loan.setStatus(arrears.compareTo(BigDecimal.ZERO) > 0
-                    ? Loan.LoanStatus.ARREARS
-                    : Loan.LoanStatus.OPEN);
+            if (today.isAfter(loan.getEndDate()) &&
+                    loan.getOutstandingBalance().compareTo(BigDecimal.ZERO) > 0) {
+
+                loan.setStatus(Loan.LoanStatus.FINAL_ARREARS);
+
+            } else {
+
+                loan.setStatus(arrears.compareTo(BigDecimal.ZERO) > 0
+                        ? Loan.LoanStatus.ARREARS
+                        : Loan.LoanStatus.OPEN);
+            }
         }
     }
 
