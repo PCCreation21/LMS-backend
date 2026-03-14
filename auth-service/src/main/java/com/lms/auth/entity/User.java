@@ -1,7 +1,7 @@
 package com.lms.auth.entity;
 
 import com.lms.auth.enums.Permission;
-import com.lms.auth.enums.Role;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -33,9 +33,8 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role = Role.ROUTE_OFFICER;
+    @Column(name = "token_version", nullable = false)
+    private long tokenVersion = 0;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)

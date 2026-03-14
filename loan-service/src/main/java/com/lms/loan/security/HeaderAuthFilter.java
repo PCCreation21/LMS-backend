@@ -1,19 +1,20 @@
 package com.lms.loan.security;
 
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class HeaderAuthFilter extends OncePerRequestFilter {
@@ -24,20 +25,23 @@ public class HeaderAuthFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
+        // If already authenticated, skip
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            chain.doFilter(request, response);
+            return;
+        }
+
         String username = request.getHeader("X-User-Name");
-        String role = request.getHeader("X-User-Role");
-        String permissions = request.getHeader("X-User-Permissions");
+        String permissionsHeader = request.getHeader("X-User-Permissions");
 
-        if (role != null) {
-            List<GrantedAuthority> authorities = new ArrayList<>();
+        if (username != null && permissionsHeader != null) {
 
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
-
-            if (permissions != null) {
-                for (String p : permissions.split(",")) {
-                    authorities.add(new SimpleGrantedAuthority(p.trim()));
-                }
-            }
+            List<SimpleGrantedAuthority> authorities =
+                    Arrays.stream(permissionsHeader.split(","))
+                            .map(String::trim)
+                            .filter(p -> !p.isEmpty())
+                            .map(SimpleGrantedAuthority::new)
+                            .collect(Collectors.toList());
 
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(username, null, authorities);

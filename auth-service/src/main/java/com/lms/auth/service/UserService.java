@@ -17,4 +17,6 @@ public interface UserService {
     PageResponse<UserResponse> searchUsersByNic(int page, int size,String search);
     UserResponse updateUser(Long id, UpdateUserRequest request);
     void deleteUser(Long id);
+
+    long getTokenVersion(Long userId);
 }

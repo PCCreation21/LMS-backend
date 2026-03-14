@@ -13,6 +13,8 @@ public class RouteValidator {
             "/api/auth/register",
             "/api/auth/login",
             "/api/auth/validate",
+            "/api/auth/refresh",
+            "/api/auth/logout",
             "/actuator"
     );
 

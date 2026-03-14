@@ -37,4 +37,8 @@ public class AuthController {
     public ResponseEntity<ApiResponse> validateToken() {
         return ResponseEntity.ok(new ApiResponse(true, "Token is valid"));
     }
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
+        return ResponseEntity.ok(authService.refresh(request));
+    }
 }

@@ -1,9 +1,7 @@
 package com.lms.auth.service;
 
 import com.lms.auth.entity.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,8 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,16 +21,17 @@ public class JwtService {
     @Value("${jwt.expiration}")
     private long jwtExpiration;
 
+    // ====== TOKEN GENERATION ======
     public String generateToken(User user) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("role", user.getRole().name());
-        claims.put("permissions", user.getPermissions() != null ? user.getPermissions().stream()
-                .map(Enum::name)
-                .collect(Collectors.joining(",")) : "");
-        claims.put("userId", user.getId());
+
+        List<String> permissions = user.getPermissions() == null
+                ? List.of()
+                : user.getPermissions().stream().map(Enum::name).collect(Collectors.toList());
 
         return Jwts.builder()
-                .setClaims(claims)
+                .claim("perms", permissions)                 // ✅ permissions list
+                .claim("uid", user.getId())                  // ✅ userId
+                .claim("ver", user.getTokenVersion())        // ✅ tokenVersion
                 .setSubject(user.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
@@ -41,6 +39,17 @@ public class JwtService {
                 .compact();
     }
 
+    // ====== VALIDATION ======
+    public boolean isTokenValid(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            return claims.getExpiration().after(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    // ====== EXTRACTION HELPERS ======
     public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
@@ -53,12 +62,27 @@ public class JwtService {
         return extractAllClaims(token).getSubject();
     }
 
-    public boolean isTokenExpired(String token) {
-        return extractAllClaims(token).getExpiration().before(new Date());
+    public Long extractUserId(String token) {
+        Object v = extractAllClaims(token).get("uid");
+        if (v == null) return null;
+        if (v instanceof Integer i) return i.longValue();
+        if (v instanceof Long l) return l;
+        return Long.valueOf(v.toString());
     }
 
-    public boolean validateToken(String token, String username) {
-        return extractUsername(token).equals(username) && !isTokenExpired(token);
+    public Long extractTokenVersion(String token) {
+        Object v = extractAllClaims(token).get("ver");
+        if (v == null) return null;
+        if (v instanceof Integer i) return i.longValue();
+        if (v instanceof Long l) return l;
+        return Long.valueOf(v.toString());
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> extractPermissions(String token) {
+        Object v = extractAllClaims(token).get("perms");
+        if (v == null) return List.of();
+        return (List<String>) v; // stored as list
     }
 
     private Key getSignKey() {

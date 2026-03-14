@@ -1,6 +1,7 @@
 package com.lms.auth.service;
 
 import com.lms.auth.dto.*;
+import com.lms.auth.entity.RefreshToken;
 import com.lms.auth.entity.User;
 import com.lms.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,12 +16,14 @@ import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
-public class AuthServiceImpl implements AuthService{
+public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final TokenVersionCacheService tokenVersionCacheService;
+    private final RefreshTokenService refreshTokenService;
 
     @Override
     @Transactional
@@ -40,22 +43,40 @@ public class AuthServiceImpl implements AuthService{
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
                 .permissions(request.getPermissions())
                 .createdDate(LocalDate.now())
                 .enabled(true)
+                .tokenVersion(0L)
                 .build();
 
         userRepository.save(user);
-        String token = jwtService.generateToken(user);
-        return new AuthResponse(token, user.getUsername(), user.getRole().name(), user.getPermissions(), "User registered successfully");
+
+        // keep Redis in sync for gateway version-check
+        tokenVersionCacheService.set(user.getId(), user.getTokenVersion());
+
+        String accessToken = jwtService.generateToken(user);
+
+        // first refresh token -> absolute expiry starts here
+        String refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                user.getUsername(),
+                user.getPermissions(),
+                "User registered successfully"
+        );
     }
 
     @Override
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         try {
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
             );
         } catch (Exception e) {
             throw new BadCredentialsException("Invalid username or password");
@@ -68,8 +89,62 @@ public class AuthServiceImpl implements AuthService{
             throw new RuntimeException("Account is disabled");
         }
 
-        String token = jwtService.generateToken(user);
-        return new AuthResponse(token, user.getUsername(), user.getRole().name(), user.getPermissions(), "Login successful");
+        // keep Redis in sync for gateway version-check
+        tokenVersionCacheService.set(user.getId(), user.getTokenVersion());
+
+        String accessToken = jwtService.generateToken(user);
+
+        // first refresh token -> absolute expiry starts here
+        String refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken,
+                user.getUsername(),
+                user.getPermissions(),
+                "Login successful"
+        );
+    }
+
+    @Override
+    @Transactional
+    public AuthResponse refresh(RefreshRequest request) {
+        // validate existing refresh token
+        RefreshToken rt = refreshTokenService.validate(request.getRefreshToken());
+
+        User user = userRepository.findById(rt.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account is disabled");
+        }
+
+        // ensure Redis has latest version
+        tokenVersionCacheService.set(user.getId(), user.getTokenVersion());
+
+        // create new access token
+        String accessToken = jwtService.generateToken(user);
+
+        // rotate refresh token but KEEP SAME ABSOLUTE EXPIRY
+        refreshTokenService.revoke(request.getRefreshToken());
+        String newRefreshToken = refreshTokenService.createRefreshToken(
+                user.getId(),
+                rt.getExpiresAt()
+        );
+
+        return new AuthResponse(
+                accessToken,
+                newRefreshToken,
+                user.getUsername(),
+                user.getPermissions(),
+                "Token refreshed"
+        );
+    }
+
+    @Override
+    @Transactional
+    public void logout(RefreshRequest request) {
+        refreshTokenService.revoke(request.getRefreshToken());
     }
 
     @Override
@@ -89,5 +164,4 @@ public class AuthServiceImpl implements AuthService{
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
-
 }
