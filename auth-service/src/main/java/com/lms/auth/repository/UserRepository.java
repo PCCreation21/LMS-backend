@@ -1,10 +1,11 @@
 package com.lms.auth.repository;
 
 import com.lms.auth.entity.User;
+//import io.lettuce.core.dynamic.annotation.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,4 +26,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsername(String username);
     boolean existsByNic(String nic);
     boolean existsByEmail(String email);
+
+    @Query("SELECT u.tokenVersion FROM User u WHERE u.id = :id")
+    Long findTokenVersionById(@Param("id") Long id);
 }

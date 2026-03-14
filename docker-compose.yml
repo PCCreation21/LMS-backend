@@ -1,0 +1,166 @@
+#version: "3.8"
+
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: lms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Riwpc@1104
+      MYSQL_DATABASE: lms_auth_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - lms-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -pRiwpc@1104 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+
+  redis:
+    image: redis:7-alpine
+    container_name: lms-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lms-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: lms-auth-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/lms_auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Riwpc@1104
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    ports:
+      - "8081:8081"
+    networks:
+      - lms-network
+
+
+  customer-service:
+    build:
+      context: ./customer-service
+    container_name: lms-customer-service
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8082:8082"
+    networks:
+      - lms-network
+
+
+  loan-service:
+    build:
+      context: ./loan-service
+    container_name: lms-loan-service
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8083:8083"
+    networks:
+      - lms-network
+
+
+  payment-service:
+    build:
+      context: ./payment-service
+    container_name: lms-payment-service
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8084:8084"
+    networks:
+      - lms-network
+
+
+  system-service:
+    build:
+      context: ./system-service
+    container_name: lms-system-service
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    ports:
+      - "8085:8085"
+    networks:
+      - lms-network
+
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: lms-api-gateway
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_started
+      customer-service:
+        condition: service_started
+      loan-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+      system-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    networks:
+      - lms-network
+
+
+volumes:
+  mysql_data:
+  redis_data:
+
+
+networks:
+  lms-network:
+    driver: bridge

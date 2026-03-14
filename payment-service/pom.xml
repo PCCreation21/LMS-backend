@@ -13,7 +13,7 @@
     <groupId>com.lms</groupId>
     <artifactId>payment-service</artifactId>
     <version>1.0.0</version>
-    <n>payment-service</n>
+    <name>payment-service</name>
 
     <properties>
         <java.version>17</java.version>
