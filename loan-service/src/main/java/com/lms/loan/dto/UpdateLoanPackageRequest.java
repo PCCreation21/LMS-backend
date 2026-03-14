@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 public class UpdateLoanPackageRequest {
     private String packageName;
     private Integer timePeriod;
+    private Integer rentalPeriod;
     private BigDecimal interest;
     private Boolean active;
 }

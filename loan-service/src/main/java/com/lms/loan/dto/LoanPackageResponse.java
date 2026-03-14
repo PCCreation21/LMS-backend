@@ -9,6 +9,7 @@ public class LoanPackageResponse {
     private String packageCode;
     private String packageName;
     private Integer timePeriod;
+    private Integer rentalPeriod;
     private BigDecimal interest;
     private boolean active;
 }

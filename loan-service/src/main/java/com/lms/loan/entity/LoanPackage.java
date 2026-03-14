@@ -21,11 +21,12 @@ public class LoanPackage {
     @Column(name = "package_name", nullable = false)
     private String packageName;
 
-    // Duration in days
     @Column(name = "time_period", nullable = false)
     private Integer timePeriod;
 
-    // Interest rate percentage per period
+    @Column(name = "rental_period",nullable = false)
+    private Integer rentalPeriod;
+
     @Column(nullable = false, precision = 5, scale = 2)
     private BigDecimal interest;
 

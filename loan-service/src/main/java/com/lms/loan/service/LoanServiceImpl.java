@@ -1,25 +1,29 @@
 package com.lms.loan.service;
 
-import com.lms.loan.dto.CloseLoanRequest;
-import com.lms.loan.dto.IssueLoanRequest;
-import com.lms.loan.dto.LoanResponse;
-import com.lms.loan.dto.UpdateLoanStateRequest;
+import com.lms.loan.dto.*;
 import com.lms.loan.entity.Loan;
 import com.lms.loan.entity.LoanPackage;
 import com.lms.loan.repository.LoanPackageRepository;
 import com.lms.loan.repository.LoanRepository;
+import com.lms.loan.specification.LoanSpecifications;
+import com.lms.loan.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -33,9 +37,9 @@ public class LoanServiceImpl implements LoanService{
     private final LoanPackageRepository loanPackageRepository;
     private final WebClient customerWebClient;
 
+    @Override
     @Transactional
     public LoanResponse issueLoan(IssueLoanRequest request) {
-        // Fetch customer details from customer-service
         Map customerData = customerWebClient.get()
                 .uri("/api/customers/nic/" + request.getCustomerNic())
                 .retrieve()
@@ -56,24 +60,20 @@ public class LoanServiceImpl implements LoanService{
             throw new RuntimeException("Loan package is not active");
         }
 
-        // Calculate end date
         LocalDate endDate = request.getStartDate().plusDays(loanPackage.getTimePeriod());
 
-        // Calculate rental amount: (principal * interest/100) / timePeriod * 30 (monthly rental)
-        // Simple: total = principal + principal * interest/100, rental = total / (timePeriod/30)
         BigDecimal interestAmount = request.getAmount()
                 .multiply(loanPackage.getInterest())
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal totalRepayable = request.getAmount().add(interestAmount);
-        long numberOfPayments = loanPackage.getTimePeriod() / 30L;
+        int numberOfPayments = loanPackage.getTimePeriod() / loanPackage.getRentalPeriod();
         if (numberOfPayments == 0) numberOfPayments = 1;
         BigDecimal rentalAmount = totalRepayable.divide(
                 BigDecimal.valueOf(numberOfPayments), 2, RoundingMode.HALF_UP);
 
-        // Generate unique loan number
         String loanNumber = "LN" + System.currentTimeMillis();
 
-        LocalDate nextPaidDate = request.getStartDate().plusDays(30);
+        LocalDate nextPaidDate = request.getStartDate().plusDays(loanPackage.getRentalPeriod());
 
         Loan loan = Loan.builder()
                 .loanNumber(loanNumber)
@@ -96,30 +96,66 @@ public class LoanServiceImpl implements LoanService{
         return mapToResponse(loan);
     }
 
-    public List<LoanResponse> getAllLoans(String status, String routeCode, String nic) {
-        List<Loan> loans;
+    @Override
+    public PageResponse<LoanResponse> getAllLoans(
+            int page,
+            int size,
+            String status,
+            String routeCode,
+            String nic,
+            String loanCode,
+            LocalDate startDateFrom,
+            LocalDate startDateTo,
+            LocalDate endDateFrom,
+            LocalDate endDateTo,
+            LocalDate nextPaidDateFrom,
+            LocalDate nextPaidDateTo,
+            LocalDate lastPaidDateFrom,
+            LocalDate lastPaidDateTo
+    ) {
 
-        if (nic != null && !nic.isEmpty()) {
-            loans = loanRepository.findByCustomerNic(nic);
-        } else if (status != null && routeCode != null) {
-            loans = loanRepository.findByRouteCodeAndStatus(routeCode, Loan.LoanStatus.valueOf(status));
-        } else if (status != null) {
-            loans = loanRepository.findByStatus(Loan.LoanStatus.valueOf(status));
-        } else if (routeCode != null) {
-            loans = loanRepository.findByRouteCode(routeCode);
-        } else {
-            loans = loanRepository.findAll();
+        Specification<Loan> spec = Specification.where(null);
+
+        if (StringUtils.hasText(nic)) {
+            spec = spec.and(LoanSpecifications.customerNicEquals(nic.trim()));
         }
 
-        return loans.stream().map(this::mapToResponse).collect(Collectors.toList());
+        if (StringUtils.hasText(status)) {
+            Loan.LoanStatus parsed;
+            try {
+                parsed = Loan.LoanStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Invalid loan status: " + status);
+            }
+            spec = spec.and(LoanSpecifications.statusEquals(parsed));
+        }
+
+        if (StringUtils.hasText(routeCode)) {
+            spec = spec.and(LoanSpecifications.routeCodeEquals(routeCode.trim()));
+        }
+
+        if (StringUtils.hasText(loanCode)) {
+            spec = spec.and(LoanSpecifications.loanNumberOrPackageCodeLike(loanCode.trim()));
+        }
+
+        spec = spec.and(LoanSpecifications.startDateBetween(startDateFrom, startDateTo));
+        spec = spec.and(LoanSpecifications.endDateBetween(endDateFrom, endDateTo));
+        spec = spec.and(LoanSpecifications.nextPaidDateBetween(nextPaidDateFrom, nextPaidDateTo));
+        spec = spec.and(LoanSpecifications.lastPaidDateBetween(lastPaidDateFrom, lastPaidDateTo));
+
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<Loan> loansPage = loanRepository.findAll(spec,pageable);
+        return PaginationUtils.toPageResponse(loansPage,this::mapToResponse);
     }
 
+    @Override
     public LoanResponse getLoanByNumber(String loanNumber) {
         Loan loan = loanRepository.findByLoanNumber(loanNumber)
                 .orElseThrow(() -> new RuntimeException("Loan not found: " + loanNumber));
         return mapToResponse(loan);
     }
 
+    @Override
     @Transactional
     public LoanResponse updateLoanState(Long id, UpdateLoanStateRequest request) {
         Loan loan = loanRepository.findById(id)
@@ -129,138 +165,175 @@ public class LoanServiceImpl implements LoanService{
         return mapToResponse(loan);
     }
 
+    @Override
     @Transactional
-    public void applyPayment(String loanNumber, BigDecimal paidAmount) {
+    public LoanResponse applyPayment(String loanNumber, BigDecimal paidAmount) {
+
+        if (paidAmount == null || paidAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Paid amount must be greater than 0");
+        }
+
         Loan loan = loanRepository.findByLoanNumber(loanNumber)
                 .orElseThrow(() -> new RuntimeException("Loan not found: " + loanNumber));
 
-        if (loan.getStatus() == Loan.LoanStatus.COMPLETED || loan.getStatus() == Loan.LoanStatus.CLOSED) {
-            throw new RuntimeException("Loan is already " + loan.getStatus());
+        if (loan.getStatus() == Loan.LoanStatus.CLOSED) {
+            throw new RuntimeException("Loan is CLOSED");
+        }
+        if (loan.getStatus() == Loan.LoanStatus.COMPLETED) {
+            throw new RuntimeException("Loan is already COMPLETED");
         }
 
-        BigDecimal effectivePaid = paidAmount.add(loan.getCarriedForwardAmount());
-        loan.setTotalPaidAmount(loan.getTotalPaidAmount().add(paidAmount));
+        LoanPackage loanPackage = loanPackageRepository.findById(loan.getPackageCode())
+                .orElseThrow(() -> new RuntimeException("Loan package not found: " + loan.getPackageCode()));
+
+        loan.setTotalPaidAmount(nvl(loan.getTotalPaidAmount()));
+        loan.setOutstandingBalance(nvl(loan.getOutstandingBalance()));
+
         loan.setLastPaidDate(LocalDate.now());
+        loan.setTotalPaidAmount(loan.getTotalPaidAmount().add(paidAmount));
 
-        BigDecimal newBalance = loan.getOutstandingBalance().subtract(effectivePaid);
-
+        BigDecimal newBalance = loan.getOutstandingBalance().subtract(paidAmount);
         if (newBalance.compareTo(BigDecimal.ZERO) <= 0) {
-            // Overpaid or exact - carry forward excess
-            BigDecimal excess = newBalance.abs();
             loan.setOutstandingBalance(BigDecimal.ZERO);
-            loan.setCarriedForwardAmount(excess);
             loan.setStatus(Loan.LoanStatus.COMPLETED);
         } else {
             loan.setOutstandingBalance(newBalance);
-            loan.setCarriedForwardAmount(BigDecimal.ZERO);
+        }
 
-            // Update next payment date
-            if (effectivePaid.compareTo(loan.getRentalAmount()) >= 0) {
-                // Full or more than rental paid
-                loan.setNextPaidDate(loan.getNextPaidDate().plusDays(30));
-                loan.setStatus(Loan.LoanStatus.OPEN);
-            } else {
-                // Partial payment - may go arrears if overdue
-                if (LocalDate.now().isAfter(loan.getNextPaidDate())) {
-                    loan.setStatus(Loan.LoanStatus.ARREARS);
-                }
-            }
+        refreshScheduleAndArrears(loan, loanPackage, LocalDate.now());
+
+        if (loan.getOutstandingBalance().compareTo(BigDecimal.ZERO) == 0) {
+            loan.setStatus(Loan.LoanStatus.COMPLETED);
+            loan.setArrearsAmount(BigDecimal.ZERO);
         }
 
         loanRepository.save(loan);
+        return mapToResponse(loan);
     }
 
-    @Transactional
-    public LoanResponse closeAndCreateSubLoan(CloseLoanRequest request) {
-        Loan existingLoan = loanRepository.findByLoanNumber(request.getLoanNumber())
-                .orElseThrow(() -> new RuntimeException("Loan not found: " + request.getLoanNumber()));
+    private void refreshScheduleAndArrears(Loan loan, LoanPackage loanPackage, LocalDate today) {
 
-        // Close existing loan
-        existingLoan.setStatus(Loan.LoanStatus.CLOSED);
-        loanRepository.save(existingLoan);
+        if (loan.getStatus() == Loan.LoanStatus.CLOSED) return;
 
-        if (!request.isCreateSubLoan()) {
-            return mapToResponse(existingLoan);
-        }
+        int rentalPeriodDays = loanPackage.getRentalPeriod();
+        int timePeriodDays = loanPackage.getTimePeriod();
 
-        // Create sub-loan
-        LoanPackage loanPackage = loanPackageRepository.findById(request.getSubLoanPackageCode())
-                .orElseThrow(() -> new RuntimeException("Loan package not found: " + request.getSubLoanPackageCode()));
+        if (rentalPeriodDays <= 0) throw new RuntimeException("Invalid rentalPeriod");
+        if (timePeriodDays <= 0) throw new RuntimeException("Invalid timePeriod");
 
-        LocalDate subEndDate = request.getSubLoanStartDate().plusDays(loanPackage.getTimePeriod());
-        BigDecimal interestAmount = request.getSubLoanAmount()
-                .multiply(loanPackage.getInterest())
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal totalRepayable = request.getSubLoanAmount().add(interestAmount);
-        long numberOfPayments = Math.max(loanPackage.getTimePeriod() / 30L, 1);
-        BigDecimal rentalAmount = totalRepayable.divide(BigDecimal.valueOf(numberOfPayments), 2, RoundingMode.HALF_UP);
+        LocalDate start = loan.getStartDate();
+        LocalDate end = loan.getEndDate();
+        if (start == null || end == null) return;
 
-        Loan subLoan = Loan.builder()
-                .loanNumber("LN" + System.currentTimeMillis())
-                .customerNic(existingLoan.getCustomerNic())
-                .customerName(existingLoan.getCustomerName())
-                .packageCode(request.getSubLoanPackageCode())
-                .loanAmount(request.getSubLoanAmount())
-                .rentalAmount(rentalAmount)
-                .startDate(request.getSubLoanStartDate())
-                .endDate(subEndDate)
-                .nextPaidDate(request.getSubLoanStartDate().plusDays(30))
-                .totalPaidAmount(BigDecimal.ZERO)
-                .outstandingBalance(totalRepayable)
-                .carriedForwardAmount(BigDecimal.ZERO)
-                .status(Loan.LoanStatus.OPEN)
-                .routeCode(existingLoan.getRouteCode())
-                .parentLoanId(existingLoan.getId())
-                .build();
+        loan.setTotalPaidAmount(nvl(loan.getTotalPaidAmount()));
+        loan.setRentalAmount(nvl(loan.getRentalAmount()));
+        loan.setCarriedForwardAmount(nvl(loan.getCarriedForwardAmount()));
 
-        loanRepository.save(subLoan);
-        return mapToResponse(subLoan);
-    }
+        long totalInstallments = timePeriodDays / rentalPeriodDays;
+        if (totalInstallments <= 0) totalInstallments = 1;
 
-    // Scheduled job: auto-move overdue loans to ARREARS
-    @Scheduled(cron = "0 0 1 * * *") // Every day at 1 AM
-    @Transactional
-    public void updateOverdueLoans() {
-        List<Loan> overdueLoans = loanRepository.findOverdueLoans(LocalDate.now());
-        overdueLoans.forEach(loan -> {
-            loan.setStatus(Loan.LoanStatus.ARREARS);
-            loanRepository.save(loan);
-        });
-        log.info("Updated {} loans to ARREARS status", overdueLoans.size());
-    }
+        long daysSinceStart = Math.max(0, today.toEpochDay() - start.toEpochDay());
+        long periodsPassed = daysSinceStart / rentalPeriodDays;
 
-    private LoanResponse mapToResponse(Loan loan) {
-        LoanResponse response = new LoanResponse();
-        response.setId(loan.getId());
-        response.setLoanNumber(loan.getLoanNumber());
-        response.setCustomerNic(loan.getCustomerNic());
-        response.setCustomerName(loan.getCustomerName());
-        response.setPackageCode(loan.getPackageCode());
-        response.setLoanAmount(loan.getLoanAmount());
-        response.setRentalAmount(loan.getRentalAmount());
-        response.setStartDate(loan.getStartDate());
-        response.setEndDate(loan.getEndDate());
-        response.setLastPaidDate(loan.getLastPaidDate());
-        response.setNextPaidDate(loan.getNextPaidDate());
-        response.setTotalPaidAmount(loan.getTotalPaidAmount());
-        response.setOutstandingBalance(loan.getOutstandingBalance());
-        response.setCarriedForwardAmount(loan.getCarriedForwardAmount());
+        LocalDate firstDue = start.plusDays(rentalPeriodDays);
+        LocalDate scheduledNext = start.plusDays((periodsPassed + 1) * rentalPeriodDays);
 
-        // Calculate due to paid (amount that should have been paid by now)
-        if (loan.getNextPaidDate() != null && LocalDate.now().isAfter(loan.getNextPaidDate())) {
-            long overduePayments = (LocalDate.now().toEpochDay() - loan.getStartDate().toEpochDay()) / 30
-                    - (loan.getTotalPaidAmount().divide(loan.getRentalAmount(), 0, RoundingMode.DOWN)).longValue();
-            BigDecimal dueToPaid = loan.getRentalAmount().multiply(BigDecimal.valueOf(Math.max(overduePayments, 0)));
-            response.setDueToPaid(dueToPaid);
-            response.setArrearsAmount(dueToPaid.subtract(loan.getCarriedForwardAmount()));
+        if (scheduledNext.isBefore(firstDue)) scheduledNext = firstDue;
+        if (scheduledNext.isAfter(end)) scheduledNext = end;
+
+        loan.setNextPaidDate(scheduledNext);
+
+        long installmentsDue;
+        if (today.isBefore(firstDue)) {
+            installmentsDue = 0;
         } else {
-            response.setDueToPaid(BigDecimal.ZERO);
-            response.setArrearsAmount(BigDecimal.ZERO);
+            installmentsDue = daysSinceStart / rentalPeriodDays;
         }
+        installmentsDue = Math.min(installmentsDue, totalInstallments);
 
-        response.setStatus(loan.getStatus());
-        response.setRouteCode(loan.getRouteCode());
-        response.setParentLoanId(loan.getParentLoanId());
-        return response;
+        BigDecimal rental = loan.getRentalAmount();
+        BigDecimal dueToPaid = rental.multiply(BigDecimal.valueOf(installmentsDue));
+
+        BigDecimal totalPaid = loan.getTotalPaidAmount();
+
+        BigDecimal arrears = dueToPaid.subtract(totalPaid);
+        if (arrears.compareTo(BigDecimal.ZERO) < 0) arrears = BigDecimal.ZERO;
+
+        BigDecimal carriedForward = totalPaid.subtract(dueToPaid);
+        if (carriedForward.compareTo(BigDecimal.ZERO) < 0) carriedForward = BigDecimal.ZERO;
+
+        loan.setDueToPaid(dueToPaid);
+        loan.setArrearsAmount(arrears);
+        loan.setCarriedForwardAmount(carriedForward);
+
+        if (loan.getStatus() != Loan.LoanStatus.COMPLETED) {
+            if (today.isAfter(loan.getEndDate()) &&
+                    loan.getOutstandingBalance().compareTo(BigDecimal.ZERO) > 0) {
+
+                loan.setStatus(Loan.LoanStatus.FINAL_ARREARS);
+
+            } else {
+
+                loan.setStatus(arrears.compareTo(BigDecimal.ZERO) > 0
+                        ? Loan.LoanStatus.ARREARS
+                        : Loan.LoanStatus.OPEN);
+            }
+        }
     }
+
+    private static BigDecimal nvl(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    @Scheduled(cron = "0 0 1 * * *")
+    @Transactional
+    public void refreshLoansDaily() {
+        LocalDate today = LocalDate.now();
+
+        List<Loan> loans = loanRepository.findAll().stream()
+                .filter(l -> l.getStatus() != Loan.LoanStatus.CLOSED)
+                .filter(l -> l.getStatus() != Loan.LoanStatus.COMPLETED)
+                .toList();
+
+        for (Loan loan : loans) {
+            LoanPackage pkg = loanPackageRepository.findById(loan.getPackageCode())
+                    .orElseThrow(() -> new RuntimeException("Loan package not found: " + loan.getPackageCode()));
+
+            refreshScheduleAndArrears(loan, pkg, today);
+            loanRepository.save(loan);
+        }
+    }
+
+private LoanResponse mapToResponse(Loan loan) {
+
+    LoanResponse response = new LoanResponse();
+
+    response.setId(loan.getId());
+    response.setLoanNumber(loan.getLoanNumber());
+    response.setCustomerNic(loan.getCustomerNic());
+    response.setCustomerName(loan.getCustomerName());
+    response.setPackageCode(loan.getPackageCode());
+
+    response.setLoanAmount(loan.getLoanAmount());
+    response.setRentalAmount(loan.getRentalAmount());
+
+    response.setStartDate(loan.getStartDate());
+    response.setEndDate(loan.getEndDate());
+
+    response.setLastPaidDate(loan.getLastPaidDate());
+    response.setNextPaidDate(loan.getNextPaidDate());
+
+    response.setTotalPaidAmount(loan.getTotalPaidAmount());
+    response.setOutstandingBalance(loan.getOutstandingBalance());
+    response.setCarriedForwardAmount(loan.getCarriedForwardAmount());
+
+    response.setDueToPaid(loan.getDueToPaid());
+    response.setArrearsAmount(loan.getArrearsAmount());
+
+    response.setStatus(loan.getStatus());
+    response.setRouteCode(loan.getRouteCode());
+    response.setParentLoanId(loan.getParentLoanId());
+
+    return response;
+}
 }

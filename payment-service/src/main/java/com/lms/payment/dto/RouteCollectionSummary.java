@@ -13,5 +13,4 @@ public class RouteCollectionSummary {
     private long totalCustomers;
     private BigDecimal totalCollectedAmount;
     private LocalDate collectionDate;
-    private String status;
 }

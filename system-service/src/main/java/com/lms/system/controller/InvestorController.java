@@ -28,8 +28,11 @@ public class InvestorController {
     }
 
     @GetMapping
-    public ResponseEntity<List<InvestorResponse>> getAllInvestors() {
-        return ResponseEntity.ok(investorService.getAllInvestors());
+    public ResponseEntity<PageResponse<InvestorResponse>> getAllInvestors(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        return ResponseEntity.ok(investorService.getAllInvestors(page, size));
     }
 
     @GetMapping("/{nic}")
@@ -38,21 +41,27 @@ public class InvestorController {
     }
 
     @GetMapping("/nic")
-    public ResponseEntity<List<InvestorResponse>> searchInvestorsByNic(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<InvestorResponse>> searchInvestorsByNic(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(investorService.searchInvestorsByNic(search));
+            return ResponseEntity.ok(investorService.searchInvestorsByNic(page, size, search));
         }
-        return ResponseEntity.ok(investorService.getAllInvestors());
+        return ResponseEntity.ok(investorService.getAllInvestors(page,size));
     }
 
     @GetMapping("/name")
-    public ResponseEntity<List<InvestorResponse>> searchInvestorsByName(
-            @RequestParam(required = false) String search) {
+    public ResponseEntity<PageResponse<InvestorResponse>> searchInvestorsByName(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
         if (search != null && !search.isEmpty()) {
-            return ResponseEntity.ok(investorService.searchInvestorsByName(search));
+            return ResponseEntity.ok(investorService.searchInvestorsByName(page, size, search));
         }
-        return ResponseEntity.ok(investorService.getAllInvestors());
+        return ResponseEntity.ok(investorService.getAllInvestors(page, size));
     }
 
     @PutMapping("/{nic}")

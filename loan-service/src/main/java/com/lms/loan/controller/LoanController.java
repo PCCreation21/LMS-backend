@@ -5,12 +5,13 @@ import com.lms.loan.service.LoanService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,11 +30,50 @@ public class LoanController {
 
     @PreAuthorize("hasAuthority('VIEW_LOAN')")
     @GetMapping
-    public ResponseEntity<List<LoanResponse>> getAllLoans(
+    public ResponseEntity<PageResponse<LoanResponse>> getAllLoans(
+
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String routeCode,
-            @RequestParam(required = false) String nic) {
-        return ResponseEntity.ok(loanService.getAllLoans(status, routeCode, nic));
+            @RequestParam(required = false) String nic,
+            @RequestParam(required = false) String loanCode,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate startDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate startDateTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate endDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate endDateTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate nextPaidDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate nextPaidDateTo,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate lastPaidDateFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate lastPaidDateTo
+    ) {
+
+        return ResponseEntity.ok(
+                loanService.getAllLoans(
+                        page,
+                        size,
+                        status,
+                        routeCode,
+                        nic,
+                        loanCode,
+                        startDateFrom,
+                        startDateTo,
+                        endDateFrom,
+                        endDateTo,
+                        nextPaidDateFrom,
+                        nextPaidDateTo,
+                        lastPaidDateFrom,
+                        lastPaidDateTo
+                )
+        );
     }
 
     @GetMapping("/{loanNumber}")
@@ -47,11 +87,5 @@ public class LoanController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateLoanStateRequest request) {
         return ResponseEntity.ok(loanService.updateLoanState(id, request));
-    }
-
-    @PostMapping("/close")
-    public ResponseEntity<LoanResponse> closeAndCreateSubLoan(
-            @Valid @RequestBody CloseLoanRequest request) {
-        return ResponseEntity.ok(loanService.closeAndCreateSubLoan(request));
     }
 }

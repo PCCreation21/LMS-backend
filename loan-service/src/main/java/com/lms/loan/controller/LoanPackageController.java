@@ -1,9 +1,6 @@
 package com.lms.loan.controller;
 
-import com.lms.loan.dto.ApiResponse;
-import com.lms.loan.dto.CreateLoanPackageRequest;
-import com.lms.loan.dto.LoanPackageResponse;
-import com.lms.loan.dto.UpdateLoanPackageRequest;
+import com.lms.loan.dto.*;
 import com.lms.loan.service.LoanPackageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +28,35 @@ public class LoanPackageController {
     }
 
     @GetMapping
-    public ResponseEntity<List<LoanPackageResponse>> getAllPackages() {
-        return ResponseEntity.ok(loanPackageService.getAllPackages());
+    public ResponseEntity<PageResponse<LoanPackageResponse>> getAllPackages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        return ResponseEntity.ok(loanPackageService.getAllPackages(page, size));
+    }
+
+    @GetMapping("/package-code")
+    public ResponseEntity<PageResponse<LoanPackageResponse>> searchPackagesByPackageCode(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(loanPackageService.searchPackagesByPackageCode(page, size, search));
+        }
+        return ResponseEntity.ok(loanPackageService.getAllPackages(page, size));
+    }
+
+    @GetMapping("/package-name")
+    public ResponseEntity<PageResponse<LoanPackageResponse>> searchPackagesByPackageName(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(loanPackageService.searchPackagesByPackageName(page, size, search));
+        }
+        return ResponseEntity.ok(loanPackageService.getAllPackages(page, size));
     }
 
     @GetMapping("/{packageCode}")

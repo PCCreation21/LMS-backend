@@ -1,14 +1,10 @@
 package com.lms.payment.controller;
 
-import com.lms.payment.dto.CollectPaymentRequest;
-import com.lms.payment.dto.PaymentResponse;
-import com.lms.payment.dto.ReceiptResponse;
-import com.lms.payment.dto.RouteCollectionSummary;
+import com.lms.payment.dto.*;
 import com.lms.payment.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,9 +31,12 @@ public class PaymentController {
     }
 
     @GetMapping("/loan/{loanNumber}")
-    public ResponseEntity<List<PaymentResponse>> getPaymentsByLoan(
-            @PathVariable String loanNumber) {
-        return ResponseEntity.ok(paymentService.getPaymentsByLoan(loanNumber));
+    public ResponseEntity<PageResponse<PaymentResponse>> getPaymentsByLoan(
+            @PathVariable String loanNumber,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size
+    ) {
+        return ResponseEntity.ok(paymentService.getPaymentsByLoan(page,size, loanNumber));
     }
 
     @GetMapping("/customer/{customerNic}")
@@ -46,11 +45,54 @@ public class PaymentController {
         return ResponseEntity.ok(paymentService.getPaymentsByCustomer(customerNic));
     }
 
-    @GetMapping("/route/{routeCode}/collections")
-    public ResponseEntity<List<RouteCollectionSummary>> getRouteCollections(
-            @PathVariable String routeCode,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        if (date == null) date = LocalDate.now();
-        return ResponseEntity.ok(paymentService.getRouteCollections(routeCode, date));
+    @GetMapping("/route-collection")
+    public ResponseEntity<PageResponse<RouteCollectionSummary>> getRouteCollectionSummary(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(paymentService.getRouteCollectionSummary(page,size));
     }
+
+    @GetMapping("/route-collection/route-code")
+    public ResponseEntity<PageResponse<RouteCollectionSummary>> searchByRouteCode(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(
+                    paymentService.searchRouteCollectionSummaryByRoutecode(page, size, search)
+            );
+        }
+        return ResponseEntity.ok(
+                paymentService.getRouteCollectionSummary(page, size)
+        );
+    }
+
+    @GetMapping("/route-collection/officer")
+    public ResponseEntity<PageResponse<RouteCollectionSummary>> searchByOfficer(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (search != null && !search.isEmpty()) {
+            return ResponseEntity.ok(paymentService.searchRouteCollectionSummaryByOfficer(page, size, search));
+        }
+        return ResponseEntity.ok(paymentService.getRouteCollectionSummary(page, size));
+    }
+
+    @GetMapping("/route-collection/date")
+    public ResponseEntity<PageResponse<RouteCollectionSummary>> searchByDate(
+            @RequestParam(required = false) String date,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (date != null && !date.isEmpty()) {
+            return ResponseEntity.ok(
+                    paymentService.searchRouteCollectionSummaryByDate(page, size, LocalDate.parse(date))
+            );
+        }
+        return ResponseEntity.ok(paymentService.getRouteCollectionSummary(page, size));
+    }
+
 }

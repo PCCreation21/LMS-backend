@@ -1,16 +1,17 @@
 package com.lms.auth.service;
 
+import com.lms.auth.dto.PageResponse;
 import com.lms.auth.dto.UpdateUserRequest;
 import com.lms.auth.dto.UserResponse;
 import com.lms.auth.entity.User;
 import com.lms.auth.repository.UserRepository;
+import com.lms.auth.utils.PaginationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,10 +23,24 @@ public class UserServiceImpl implements UserService{
     private final TokenVersionCacheService tokenVersionCacheService;
 
     @Override
-    public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(this::mapToUserResponse)
-                .collect(Collectors.toList());
+    public PageResponse<UserResponse> getAllUsers(int page, int size) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<User> userPage = userRepository.findAll(pageable);
+        return PaginationUtils.toPageResponse(userPage,this::mapToUserResponse);
+    }
+
+    @Override
+    public PageResponse<UserResponse> searchUsersByName(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<User> userPage = userRepository.searchUsersByName(search,pageable);
+        return PaginationUtils.toPageResponse(userPage,this::mapToUserResponse);
+    }
+
+    @Override
+    public PageResponse<UserResponse> searchUsersByNic(int page, int size, String search) {
+        Pageable pageable = PaginationUtils.createPageRequest(page,size);
+        Page<User> userPage = userRepository.searchUsersByNic(search,pageable);
+        return PaginationUtils.toPageResponse(userPage,this::mapToUserResponse);
     }
 
     @Override
@@ -47,20 +62,6 @@ public class UserServiceImpl implements UserService{
         User user = userRepository.findByUsername(username)
                 .orElseThrow(()->new RuntimeException("User not found with username: " + username));
         return mapToUserResponse(user);
-    }
-
-    @Override
-    public List<UserResponse> searchUsersByName(String search) {
-        return userRepository.searchUsersByName(search).stream()
-                .map(this::mapToUserResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<UserResponse> searchUsersByNic(String search) {
-        return userRepository.searchUsersByNic(search).stream()
-                .map(this::mapToUserResponse)
-                .collect(Collectors.toList());
     }
 
     @Override
